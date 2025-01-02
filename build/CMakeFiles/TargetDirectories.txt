@@ -1,0 +1,4 @@
+/home/smiesko1/semestralka/build/CMakeFiles/server_snake.dir
+/home/smiesko1/semestralka/build/CMakeFiles/client_snake.dir
+/home/smiesko1/semestralka/build/CMakeFiles/edit_cache.dir
+/home/smiesko1/semestralka/build/CMakeFiles/rebuild_cache.dir
