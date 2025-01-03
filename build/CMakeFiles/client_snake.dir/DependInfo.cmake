@@ -9,7 +9,6 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/smiesko1/semestralka/client_snake.c" "CMakeFiles/client_snake.dir/client_snake.c.o" "gcc" "CMakeFiles/client_snake.dir/client_snake.c.o.d"
-  "/home/smiesko1/semestralka/data_pipeline.c" "CMakeFiles/client_snake.dir/data_pipeline.c.o" "gcc" "CMakeFiles/client_snake.dir/data_pipeline.c.o.d"
   "/home/smiesko1/semestralka/snake.c" "CMakeFiles/client_snake.dir/snake.c.o" "gcc" "CMakeFiles/client_snake.dir/snake.c.o.d"
   )
 

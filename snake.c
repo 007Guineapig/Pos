@@ -38,6 +38,7 @@ void spawnFood(Grid *grid) {
 
 void renderGrid(const Grid *grid) {
     system("clear");  
+    printf("Game Grid:\n");
     for(int i = 0; i < grid->height; i++) {
         for (int j = 0; j < grid->width; j++) {
             if (grid->cells[i][j] == EMPTY) {
@@ -88,14 +89,14 @@ void updateGrid(Grid *grid, Snake *snakes, int num_snakes) {
 
 int checkCollision(Grid *grid, Snake * snake,int deltaX,int deltaY) {
 
- printf("Checking collision for snake at (%d, %d)\n", snake->x[0], snake->y[0]);
+// printf("Checking collision for snake at (%d, %d)\n", snake->x[0], snake->y[0]);
     if(snake->x[0] < 0 || snake->x[0] >= grid->width || snake->y[0] < 0 || snake->y[0] >= grid->height) {
+
         return 1; 
     }
 
-    if(grid->cells[snake->y[0]][snake->x[0]] == SNAKE) {
+    if(grid->cells[snake->y[0]][snake->x[0]] == SNAKE && snake->direction != 'p') {
         return 1; 
-        //tuto 1
     }
     
     if(grid->cells[snake->y[0]][snake->x[0]] == FOOD){

@@ -92,5 +92,4 @@ CMakeFiles/client_snake.dir/client_snake.c.o: \
  /usr/include/x86_64-linux-gnu/bits/fcntl.h \
  /usr/include/x86_64-linux-gnu/bits/fcntl-linux.h \
  /usr/include/x86_64-linux-gnu/bits/stat.h \
- /usr/include/x86_64-linux-gnu/bits/struct_stat.h \
- /home/smiesko1/semestralka/data_pipeline.h
+ /usr/include/x86_64-linux-gnu/bits/struct_stat.h

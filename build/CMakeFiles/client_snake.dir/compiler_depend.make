@@ -107,41 +107,7 @@ CMakeFiles/client_snake.dir/client_snake.c.o: /home/smiesko1/semestralka/client_
   /usr/include/x86_64-linux-gnu/bits/fcntl.h \
   /usr/include/x86_64-linux-gnu/bits/fcntl-linux.h \
   /usr/include/x86_64-linux-gnu/bits/stat.h \
-  /usr/include/x86_64-linux-gnu/bits/struct_stat.h \
-  /home/smiesko1/semestralka/data_pipeline.h
-
-CMakeFiles/client_snake.dir/data_pipeline.c.o: /home/smiesko1/semestralka/data_pipeline.c \
-  /usr/include/stdc-predef.h \
-  /home/smiesko1/semestralka/data_pipeline.h \
-  /home/smiesko1/semestralka/shared_game_state.h \
-  /usr/lib/gcc/x86_64-linux-gnu/12/include/stddef.h \
-  /usr/include/string.h \
-  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
-  /usr/include/features.h \
-  /usr/include/features-time64.h \
-  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
-  /usr/include/x86_64-linux-gnu/bits/timesize.h \
-  /usr/include/x86_64-linux-gnu/sys/cdefs.h \
-  /usr/include/x86_64-linux-gnu/bits/long-double.h \
-  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
-  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
-  /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
-  /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
-  /usr/include/strings.h \
-  /usr/include/stdio.h \
-  /usr/lib/gcc/x86_64-linux-gnu/12/include/stdarg.h \
-  /usr/include/x86_64-linux-gnu/bits/types.h \
-  /usr/include/x86_64-linux-gnu/bits/typesizes.h \
-  /usr/include/x86_64-linux-gnu/bits/time64.h \
-  /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
-  /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
-  /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h \
-  /usr/include/x86_64-linux-gnu/bits/types/__FILE.h \
-  /usr/include/x86_64-linux-gnu/bits/types/FILE.h \
-  /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
-  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
-  /usr/include/x86_64-linux-gnu/bits/floatn.h \
-  /usr/include/x86_64-linux-gnu/bits/floatn-common.h
+  /usr/include/x86_64-linux-gnu/bits/struct_stat.h
 
 CMakeFiles/client_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
   /usr/include/stdc-predef.h \
@@ -235,10 +201,6 @@ CMakeFiles/client_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
 /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h:
 
 /usr/include/time.h:
-
-/home/smiesko1/semestralka/data_pipeline.c:
-
-/home/smiesko1/semestralka/data_pipeline.h:
 
 /usr/include/x86_64-linux-gnu/bits/fcntl-linux.h:
 

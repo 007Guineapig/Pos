@@ -11,29 +11,30 @@
 #include <arpa/inet.h>
 #include <termios.h>
 #include <fcntl.h>
-#include "data_pipeline.h"
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5097
 
 #define GAME_STATE_SIZE 2428
-
+int gameover;
+int score;
+int bestScore;
 int kbhit(void) {
     struct termios oldt, newt;
     int ch;
     int oldf;
 
-    tcgetattr(STDIN_FILENO, &oldt);  // Get the current terminal settings
+    tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);  // Disable canonical mode and echo
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);  // Apply new settings
+    newt.c_lflag &= ~(ICANON | ECHO); 
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);  // Set non-blocking mode
-    ch = getchar();  // Get character without waiting for Enter
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);  // Restore old terminal settings
-    fcntl(STDIN_FILENO, F_SETFL, oldf);  // Restore old file flags
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);  
 
     if (ch != EOF) {
-        ungetc(ch, stdin);  // Put the character back to stdin
+        ungetc(ch, stdin);
         return 1;
     }
     return 0;
@@ -43,7 +44,7 @@ int init_client(const char *server_ip, const int port) {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (socket_fd < 0) {
-        perror("Error creating socket");
+        perror("Error creating socket\n");
         return -1;
     }
     
@@ -54,14 +55,14 @@ int init_client(const char *server_ip, const int port) {
 
     // Convert server IP address
     if (inet_pton(AF_INET, server_ip, &server_addr.sin_addr) <= 0) {
-       perror("Invalid server IP address");
+       perror("Invalid server IP address\n");
         close(socket_fd);
         return -1;
     }
 
     // Connect to the server
     if (connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Error connecting to server");
+        perror("Error connecting to server\n");
         close(socket_fd);
         return -1;
     }
@@ -71,15 +72,14 @@ int init_client(const char *server_ip, const int port) {
 }
 
 void handle_user_input(int socket) {
-    if (kbhit()) {  // Check if a key is pressed
+    if (kbhit()) { 
         char input = getchar(); 
-        printf("Key pressed: %c\n", input); 
+        //printf("Key pressed: %c\n", input); 
         if (input == 'w' || input == 'a' || input == 's' || input == 'd' || input == 'k' || input == 'p'){
-            send(socket, &input, sizeof(input), 0);  // Send input to the server
+            send(socket, &input, sizeof(input), 0); 
         }
     }
 }
-
 void receive_game_state_with_timeout(int socket, GameState *game_state) {
     fd_set read_fds;
     struct timeval timeout;
@@ -87,112 +87,154 @@ void receive_game_state_with_timeout(int socket, GameState *game_state) {
     FD_ZERO(&read_fds);
     FD_SET(socket, &read_fds);
 
-    timeout.tv_sec = 0;  // Timeout after 1 second
+    timeout.tv_sec = 0; 
     timeout.tv_usec = 10000;
 
     int activity = select(socket + 1, &read_fds, NULL, NULL, &timeout);
     if (activity < 0) {
         perror("Select error");
-        return ;
+        return;
     } else if (activity == 0) {
         return;
     } else {
-        int bytes_received = recv(socket, game_state, sizeof(GameState), 0);
+        GameMessage msg;
+        int bytes_received = recv(socket, &msg, sizeof(msg), 0);
+
         if (bytes_received > 0) {
-            printf("Received game state, grid dimensions: %d x %d\n", game_state->grid.width, game_state->grid.height);
-            printGrid(&game_state->grid);
-            return;
-        } else if (bytes_received == 0) {
-            printf("Server closed the connection.\n");
-            cleanup_client(socket);
-            exit(0);
-        } else {
-            perror("Error receiving game state");
-            cleanup_client(socket);
-            return;
-        }
-    }
-}
-/*
-void receive_game_state_with_timeout(int socket, GameState *game_state) {
-    char buffer[GAME_STATE_SIZE]; // Allocate buffer for incoming data
-    DataPipeline pipeline;
-    init_pipeline(&pipeline);
+            switch (msg.type) {
+                case MSG_GAME_STATE:
 
-    fd_set read_fds;
-    struct timeval timeout;
+                    memcpy(game_state, msg.data, sizeof(GameState)); 
+                    renderGrid(&game_state->grid);
+                    break;
 
-    FD_ZERO(&read_fds);
-    FD_SET(socket, &read_fds);
+                case MSG_GAME_OVER:
+                    system("clear"); 
+                    printf("Game Over: %s\n", msg.data);
+                    score = msg.score;
+                    if(score > bestScore){
+                        bestScore = score;
+                    }
+                    gameover = 1;
+                    break;
 
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 10000;
+                case MSG_SERVER_FULL:
+                    printf("Server is full: %s\n", msg.data);
+                    score = 0;
+                    gameover = 1;
+                    break;
 
-    int activity = select(socket + 1, &read_fds, NULL, NULL, &timeout);
-    if (activity > 0) {
-        int bytes_received = recv(socket, buffer, sizeof(buffer), 0);
-        if (bytes_received > 0) {
-            // Deserialize received data into game state
-            if (pipeline.deserialize(buffer, bytes_received, game_state) < 0) {
-                printf("Failed to deserialize game state\n");
-            } else {
-                //printf("Received and processed game state\n");
-                  printGrid(&game_state->grid);
+                case MSG_SERVER_SHUTDOWN:
+                    printf("Server is shutting down: %s\n", msg.data);
+                    score = 0;
+                    gameover = 1;
+                    break;
+
+                default:
+                    printf("Unknown message type received\n");
+                    break;
             }
         } else if (bytes_received == 0) {
             printf("Server closed the connection.\n");
-            cleanup_client(socket);
-            exit(0);
+            gameover = 1;
         } else {
-            perror("Error receiving game state");
+            perror("Error receiving game state\n");
+            cleanup_client(socket);
+            return;
         }
     }
 }
-*/
+void display_menu(int score) {
+    system("clear");
+    printf("Menu:\n");
+    printf("1. View Score\n");
+    printf("2. Reconnect to Server\n");
+    printf("3. Exit\n");
+    //printf("Your current score: %d\n", score);
+    //printf("Your best score: %d\n", bestScore);
+}
 void printGrid(const Grid *grid) {
     system("clear");
     printf("Game Grid:\n");
     for (int i = 0; i < grid->height; i++) {
         for (int j = 0; j < grid->width; j++) {
             if (grid->cells[i][j] == EMPTY) {
-                printf(". ");  // Empty space
+                printf(". ");  
             } else if (grid->cells[i][j] == SNAKE) {
-                printf("S ");  // Snake
+                printf("S "); 
             } else if (grid->cells[i][j] == FOOD) {
-                printf("F ");  // Food
+                printf("F ");  
             }
         }
         printf("\n");
     }
 }
+
 void cleanup_client(int socket) {
     close(socket);
     printf("Client connection closed.\n");
 }
 
 int main() {
-char str;
-/*
-       while (1) {
-        printf("Press 'z' to start the game: ");
-        scanf(" %c", &str);  
+    int socket = -1;
+    score = 0;
+    GameState game_state;
+    int menu_choice = 0;
+    bestScore = 0;
+    gameover = 0;
 
-        if (str == 'z') {
-            break;
-        }
-    }*/
-
-    int socket = init_client(SERVER_IP, SERVER_PORT);
-    if (socket < 0) {
-      return -1;
-    }
-  GameState game_state;
     while (1) {
-      handle_user_input(socket);
-      receive_game_state_with_timeout(socket,&game_state);
-        usleep(10000);             
+        if (socket < 0) {
+            display_menu(score); 
+            printf("Enter your choice: ");
+            if (scanf("%d", &menu_choice) != 1) {
+                while (getchar() != '\n');  
+                printf("Invalid choice. Please enter a number.\n");
+                sleep(2);
+                continue; 
+            }
 
+            if (menu_choice == 1) {
+               printf("Your current score: %d\n", score);
+                printf("Your best score: %d\n", bestScore);
+                sleep(2);
+            } else if (menu_choice == 2) {
+                gameover = 0;
+                socket = init_client(SERVER_IP, SERVER_PORT);
+                if (socket < 0) {
+                    printf("Failed to connect to server. Retrying...\n");
+                    sleep(2);
+                }
+            } else if (menu_choice == 3) {
+                break;
+            } else {
+                printf("Invalid choice. Please try again.\n");
+                sleep(2);
+            }
+        } else {
+            handle_user_input(socket);
+            receive_game_state_with_timeout(socket, &game_state);
+            if (gameover == 1) {
+                cleanup_client(socket);
+                socket = -1;
+            }
+
+            if (socket < 0) {
+                printf("Press Enter to return to menu.\n");
+                while (1) {
+                    if (getchar() == '\n') {
+                        break;  
+                    }
+                }
+            }
+
+            usleep(10000);
+        }
     }
-    cleanup_client(socket);
+
+    if (socket >= 0) {
+        cleanup_client(socket);
+    }
+
     return 0;
 }

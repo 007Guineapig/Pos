@@ -1,8 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/client_snake.dir/client_snake.c.o"
   "CMakeFiles/client_snake.dir/client_snake.c.o.d"
-  "CMakeFiles/client_snake.dir/data_pipeline.c.o"
-  "CMakeFiles/client_snake.dir/data_pipeline.c.o.d"
   "CMakeFiles/client_snake.dir/snake.c.o"
   "CMakeFiles/client_snake.dir/snake.c.o.d"
   "client_snake"

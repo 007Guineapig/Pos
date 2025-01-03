@@ -1,7 +1,7 @@
 
 #pragma once
 #include <stddef.h>
-#define MAX_PLAYERS 4  
+#define MAX_PLAYERS 10  
 #define PORT 5095    
 #define GRID_WIDTH 20
 #define GRID_HEIGHT 20
@@ -12,6 +12,20 @@ typedef enum {
     SNAKE,      
     FOOD        
 } Cell;
+
+typedef enum {
+    MSG_GAME_STATE,
+    MSG_GAME_OVER,
+    MSG_SERVER_FULL,
+    MSG_SERVER_SHUTDOWN
+} MessageType;
+
+typedef struct {
+    MessageType type;
+    int score;  // Add this field to store the player's score
+    char data[2428];  // Optional: Additional message data
+} GameMessage;
+
 typedef struct {
     int width;                
     int height;               
@@ -27,7 +41,9 @@ typedef struct {
 
 typedef struct {
     int socket; 
-    Snake snake; 
+    Snake snake;
+    int playing; 
+    int sendData;
 } Player;
 typedef struct {
     Grid grid;        
@@ -37,17 +53,9 @@ typedef struct {
 } GameState;
 
 typedef struct {
-    int (*preprocess)(GameState *state); // Optional: Pre-send processing
-    int (*postprocess)(GameState *state); // Optional: Post-receive processing
-    int (*serialize)(GameState *state, char *buffer, size_t buffer_size); // Serialization
-    int (*deserialize)(char *buffer, size_t buffer_size, GameState *state); // Deserialization
-} DataPipeline;
-
-typedef struct {
     int server_socket;         
     Player players[MAX_PLAYERS]; 
-    int num_players;
-    DataPipeline pipeline;            
+    int num_players;          
     Grid game_grid;             
 } Server;
 

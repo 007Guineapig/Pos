@@ -6,14 +6,12 @@ set(SERVER_SOURCE_FILES
     main.c               # Server's main function
     server_snake.c       # Server logic
     snake.c              # Shared game logic
-    data_pipeline.c      # Data pipeline functions
 )
 
 # Add the source files for the client
 set(CLIENT_SOURCE_FILES
     client_snake.c       # Client's main function
     snake.c              # Shared game logic
-    data_pipeline.c      # Data pipeline functions
 )
 
 # Create the executable for the server

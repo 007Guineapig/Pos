@@ -8,7 +8,6 @@
 #include <arpa/inet.h>
 #include <termios.h>
 #include <fcntl.h>
-#include "data_pipeline.h"
 
 
 #define GAME_STATE_SIZE 2428
@@ -81,56 +80,83 @@ int init_server(Server *server, const int port) {
         perror("Error listening for connections");
         return -1;
     }
-    //ijrwposafkdoeiwujsfdk\lmpijfadskvx
-    /*
-    if (init_pipeline(&server->pipeline) < 0) {
-        fprintf(stderr, "Failed to initialize pipeline\n");
-        return -1;
-    }
-    */
     
     printf("Server is listening on port %d...\n", port);
     server->num_players = 0;
     return 0;
 }
 
+
+
 void wait_for_clients(Server *server) {
     int game_started = 0;
 
     while (1) {
-        
-        int client_socket = accept(server->server_socket, NULL, NULL);
-        
-        if (client_socket < 0) {
-            perror("Error accepting client connection");
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(server->server_socket, &read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);         
+
+        struct timeval timeout;
+        timeout.tv_sec = 1;  
+        timeout.tv_usec = 0;
+
+
+        int activity = select(FD_SETSIZE, &read_fds, NULL, NULL, &timeout);
+        if (activity < 0) {
+            perror("Select error");
             continue;
         }
 
-        if (server->num_players < MAX_PLAYERS) {
-            int player_index = server->num_players;
-            server->players[player_index].socket = client_socket;
-            int start_x = GRID_WIDTH / 2 + player_index * 5; 
-            int start_y = GRID_HEIGHT / 2;
-            initializeSnake(&server->players[player_index].snake, start_x, start_y);
-            server->num_players++;
-            printf("Player %d connected\n", server->num_players);
-            send(client_socket, &server->game_grid, sizeof(server->game_grid), 0);
-            spawnFood(&server->game_grid); 
-            if (!game_started) {
-                game_started = 1;
-                printf("Starting the game with Player 1...\n");
-                break; 
+        if (FD_ISSET(server->server_socket, &read_fds)) {
+            int client_socket = accept(server->server_socket, NULL, NULL);
+
+            if (client_socket < 0) {
+                perror("Error accepting client connection");
+                continue;
             }
-        } else {
-            char full_msg[] = "Server is full. Try again later.";
-            send(client_socket, full_msg, sizeof(full_msg), 0);
-            close(client_socket);
+
+            if (server->num_players < MAX_PLAYERS) {
+                int player_index = server->num_players;
+                server->players[player_index].socket = client_socket;
+                int start_x = GRID_WIDTH / 2 + player_index * 5;
+                int start_y = GRID_HEIGHT / 2;
+                initializeSnake(&server->players[player_index].snake, start_x, start_y);
+                server->players[player_index].playing = 1;
+                server->players[player_index].sendData = 1;
+                server->num_players++;
+                printf("Player %d connected\n", server->num_players);
+
+                GameMessage msg;
+                msg.type = MSG_GAME_STATE;
+                memcpy(msg.data, &server->game_grid, sizeof(server->game_grid));
+                send(client_socket, &msg, sizeof(msg), 0);
+
+                spawnFood(&server->game_grid);
+                if (!game_started) {
+                    game_started = 1;
+                    printf("Starting the game with Player 1...\n");
+                    break;
+                }
+            } else {
+                GameMessage msg;
+                msg.type = MSG_SERVER_FULL;
+                strncpy(msg.data, "Server is full. Try again later.", sizeof(msg.data));
+                send(client_socket, &msg, sizeof(msg), 0);
+                close(client_socket);
+            }
         }
-        
+
+        if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+            char input = getchar();
+            if (input == 'e') {
+                printf("Exit key pressed, shutting down server...\n");
+                cleanup_server(server);
+                exit(0); 
+            }
+        }
     }
 }
-
-
 
 void handle_player_input(Server *server, int player_id) {
     char buffer[1]; 
@@ -206,8 +232,6 @@ int result = select(server->players[player_id].socket + 1, &read_fds, NULL, NULL
 
 void update_game_state(Server *server) {
 
-  
-
     Snake snakes[MAX_PLAYERS]; 
     int numSnakes = 0;        
     printf("number: %d\n",server->num_players);
@@ -226,73 +250,65 @@ void update_game_state(Server *server) {
         
         moveSnake(snake, deltaX, deltaY);
          printf("kontroluje %d hraca \n", i+1);
-        if (checkCollision(&server->game_grid, snake, deltaX, deltaY)) {
+         if (checkCollision(&server->game_grid, snake, deltaX, deltaY)) {
             printf("Player %d hit an obstacle. Game over!\n", i + 1);
-        }
-        snakes[numSnakes++] = *snake;
+            printf("Checking collision for snaiugreandfjkvaljproiewfasdkl\n");
+
+            GameMessage msg;
+            msg.type = MSG_GAME_OVER;
+            msg.score = snake->score;  
+            strncpy(msg.data, "Game Over! You hit an obstacle.", sizeof(msg.data));
+            send(server->players[i].socket, &msg, sizeof(msg), 0);
+
+            close(server->players[i].socket);
+            printf("Closed connection for player %d\n", i + 1);
+
+            for (int j = i; j < server->num_players - 1; j++) {
+                server->players[j] = server->players[j + 1]; 
+            }
+            server->num_players--;
+
+            if (server->num_players == 0) {
+                printf("No players left in the game. Resetting game state.\n");
+                init_grid(server);  
+            }
+
+            i--;
+        } else {
+            snakes[numSnakes++] = *snake;
+        }  
     }
 
     updateGrid(&server->game_grid, snakes, numSnakes);
 }
 
-
 void send_game_state_to_players(Server *server) {
     printf("Sending updated game state to players...\n");
     for (int i = 0; i < server->num_players; i++) {
-        int bytes_sent = send(server->players[i].socket, &server->game_grid, sizeof(server->game_grid), 0);
-        if (bytes_sent <= 0) {
-            perror("Failed to send game state to player");
-        } else {
-            printf("Sent %d bytes to player %d\n", bytes_sent, i + 1);
-        }
-    }
-    /*
- for (int i = 0; i < server->num_players; i++){
-     printf("asjodlnfpijosaldksdoipjfdspja %c\n",server->players[i].snake.direction );
-    if(server->players[i].snake.direction == 'k'){
-    char exit_msg[] = "Server is shutting down. Goodbye!";
-                        printf("Closed connection for player %d\n", i + 1);
-                        for (int j = i; j < server->num_players - 1; j++) {
-                           server->players[j] = server->players[j+ 1]; 
-                        }
-                        close(server->players[i].socket);
-                        server->num_players--;  
-                        if (server->num_players == 0) {
-                        printf("No players left in the game. Resetting game state.\n");
-                        }
-    }
-    }*/
+        
+            GameMessage msg;
+            msg.type = MSG_GAME_STATE;  // Set the message type
+            memcpy(msg.data, &server->game_grid, sizeof(server->game_grid));  // Copy the game grid into the message data
+            int bytes_sent = send(server->players[i].socket, &msg, sizeof(msg), 0);
 
+            if (bytes_sent <= 0) {
+                perror("Failed to send game state to player");
+            } else {
+                printf("Sent %d bytes to player %d\n", bytes_sent, i + 1);
+            }
+        
+    }
 }
-
-/*
-void send_game_state_to_players(Server *server) {
-    char buffer[GAME_STATE_SIZE]; // Allocate buffer for serialized data
-    DataPipeline pipeline;
-    init_pipeline(&pipeline);
-
-    for (int i = 0; i < server->num_players; i++) {
-        // Serialize game state into a buffer
-//        if (pipeline.serialize(&server->game_grid, buffer, sizeof(buffer)) < 0) {
-     if (pipeline.serialize((GameState *)&server->game_grid, buffer, sizeof(buffer)) < 0) {
-
-            printf("Failed to serialize game state for player %d\n", i + 1);
-            continue;
-        }
-
-        int bytes_sent = send(server->players[i].socket, buffer, sizeof(GameState), 0);
-        if (bytes_sent <= 0) {
-            perror("Failed to send game state to player");
-        } else {
-            printf("Sent game state to player %d\n", i + 1);
-        }
-    }
-}*/
-
 void cleanup_server(Server *server) {
+    // Send a "Server Shutdown" message to all connected players
     for (int i = 0; i < server->num_players; i++) {
-        char shutdown_msg[] = "Server is shutting down. Goodbye!";
-        int bytes_sent = send(server->players[i].socket, shutdown_msg, sizeof(shutdown_msg), 0);
+        GameMessage msg;
+        msg.type = MSG_SERVER_SHUTDOWN;  // Set the message type
+        strncpy(msg.data, "Server is shutting down. Goodbye!", sizeof(msg.data));  // Add a shutdown message
+        msg.score = 0;  // Optional: Include a score if needed
+
+        // Send the message to the client
+        int bytes_sent = send(server->players[i].socket, &msg, sizeof(msg), 0);
         if (bytes_sent <= 0) {
             perror("Failed to send shutdown message to player");
         } else {
@@ -300,10 +316,13 @@ void cleanup_server(Server *server) {
         }
     }
 
+    // Close all player sockets
     for (int i = 0; i < server->num_players; i++) {
         close(server->players[i].socket);
         printf("Closed connection for player %d\n", i + 1);
     }
+
+    // Close the server socket
     close(server->server_socket);
     printf("Server socket closed and server shut down.\n");
 }

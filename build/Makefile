@@ -166,33 +166,6 @@ client_snake.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/client_snake.dir/build.make CMakeFiles/client_snake.dir/client_snake.c.s
 .PHONY : client_snake.c.s
 
-data_pipeline.o: data_pipeline.c.o
-.PHONY : data_pipeline.o
-
-# target to build an object file
-data_pipeline.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/server_snake.dir/build.make CMakeFiles/server_snake.dir/data_pipeline.c.o
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/client_snake.dir/build.make CMakeFiles/client_snake.dir/data_pipeline.c.o
-.PHONY : data_pipeline.c.o
-
-data_pipeline.i: data_pipeline.c.i
-.PHONY : data_pipeline.i
-
-# target to preprocess a source file
-data_pipeline.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/server_snake.dir/build.make CMakeFiles/server_snake.dir/data_pipeline.c.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/client_snake.dir/build.make CMakeFiles/client_snake.dir/data_pipeline.c.i
-.PHONY : data_pipeline.c.i
-
-data_pipeline.s: data_pipeline.c.s
-.PHONY : data_pipeline.s
-
-# target to generate assembly for a file
-data_pipeline.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/server_snake.dir/build.make CMakeFiles/server_snake.dir/data_pipeline.c.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/client_snake.dir/build.make CMakeFiles/client_snake.dir/data_pipeline.c.s
-.PHONY : data_pipeline.c.s
-
 main.o: main.c.o
 .PHONY : main.o
 
@@ -281,9 +254,6 @@ help:
 	@echo "... client_snake.o"
 	@echo "... client_snake.i"
 	@echo "... client_snake.s"
-	@echo "... data_pipeline.o"
-	@echo "... data_pipeline.i"
-	@echo "... data_pipeline.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
