@@ -6,10 +6,14 @@
 
 int init_server(Server *server, const int port);
 void wait_for_clients(Server *server);
-void handle_player_input(Server *server, int player_id);
-void init_grid(Server * server);
-void update_game_state(Server *server);
-void send_game_state_to_players(Server *server);
 void cleanup_server(Server *server);
-void check_food(Server * server);
+void send_game_list(int client_socket, Server *server);
+void print_active_games(Server *server);
+int create_new_game(Server *server, int max_players);
+int add_player_to_game(Server *server, int game_id, int player_socket);
+void update_game_state(Server *server, int game_id);
+void send_game_state_to_players(Server *server, int game_id);
+void handle_player_input(Server *server, int game_id, int player_id);
+void init_grid(Grid *grid);
+void check_food(Game *game);
 #endif

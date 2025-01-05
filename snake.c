@@ -89,7 +89,6 @@ void updateGrid(Grid *grid, Snake *snakes, int num_snakes) {
 
 int checkCollision(Grid *grid, Snake * snake,int deltaX,int deltaY) {
 
-// printf("Checking collision for snake at (%d, %d)\n", snake->x[0], snake->y[0]);
     if(snake->x[0] < 0 || snake->x[0] >= grid->width || snake->y[0] < 0 || snake->y[0] >= grid->height) {
 
         return 1; 

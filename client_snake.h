@@ -8,10 +8,11 @@
 #include "shared_game_state.h"
 
 int init_client(const char *server_ip, const int port);
-void handle_user_input(int socket);
-void cleanup_client(int socket);
+void handle_user_input(int socket, int *game_chosen);
+void cleanup_client(int *socket);
 void run_server(Server *server);
 int kbhit(void);
 void printGrid(const Grid *grid);
+void display_game_list(GameMessage *msg);
 
 #endif 
