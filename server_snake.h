@@ -16,4 +16,5 @@ void send_game_state_to_players(Server *server, int game_id);
 void handle_player_input(Server *server, int game_id, int player_id);
 void init_grid(Grid *grid);
 void check_food(Game *game);
+void close_game(Server *server, int game_id);
 #endif

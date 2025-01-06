@@ -107,6 +107,14 @@ int init_server(Server *server, const int port) {
         return -1;
     }
 
+    // Set server socket to non-blocking mode
+    int flags = fcntl(server->server_socket, F_GETFL, 0);
+    if (fcntl(server->server_socket, F_SETFL, flags | O_NONBLOCK) < 0) {
+        perror("Error setting server socket to non-blocking mode");
+        close(server->server_socket);
+        return -1;
+    }
+
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -292,7 +300,7 @@ void handle_player_input(Server *server, int game_id, int player_id) {
                     send(server->games[game_id].players[player_id].socket, &msg, sizeof(msg), 0);
 
                     close(server->games[game_id].players[player_id].socket);
-
+                    check_food(&server->games[game_id]);
                     // Remove the player from the game
                     for (int j = player_id; j < server->games[game_id].num_players - 1; j++) {
                         server->games[game_id].players[j] = server->games[game_id].players[j + 1];
@@ -312,56 +320,7 @@ void handle_player_input(Server *server, int game_id, int player_id) {
         }
     }
 }
-/*
- void handle_player_input(Server *server, int game_id, int player_id) {
-    char buffer[1];
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 10000;
 
-    fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(server->games[game_id].players[player_id].socket, &read_fds);
-
-    int result = select(server->games[game_id].players[player_id].socket + 1, &read_fds, NULL, NULL, &timeout);
-    if (result > 0) {
-        int bytes_received = recv(server->games[game_id].players[player_id].socket, buffer, sizeof(buffer), 0);
-        if (bytes_received > 0) {
-            char input = buffer[0];
-
-            Snake *snake = &server->games[game_id].players[player_id].snake;
-            switch (input) {
-                case 'w': if (snake->direction != 's') snake->direction = 'w'; break;
-                case 's': if (snake->direction != 'w') snake->direction = 's'; break;
-                case 'a': if (snake->direction != 'd') snake->direction = 'a'; break;
-                case 'd': if (snake->direction != 'a') snake->direction = 'd'; break;
-                case 'k':
-                 snake->direction = 'k'; 
-                          printf("Player %d in game %d left the game.\n", player_id + 1, game_id);
-
-                    GameMessage msg;
-                    msg.type = MSG_GAME_OVER;
-                    msg.score = snake->score;
-                    strncpy(msg.data, "You left the game.", sizeof(msg.data));
-                    send(server->games[game_id].players[player_id].socket, &msg, sizeof(msg), 0);
-
-                    close(server->games[game_id].players[player_id].socket);
-
-                    for (int j = player_id; j < server->games[game_id].num_players - 1; j++) {
-                        server->games[game_id].players[j] = server->games[game_id].players[j + 1];
-                    }
-                    server->games[game_id].num_players--;
-
-                        
-                        check_food(&server->games[game_id]);
-                
-                 break;
-                case 'p': snake->direction = 'p'; break;
-                default: break;
-            }
-        }
-    }
-} */
 
 
 void update_game_state(Server *server, int game_id) {
