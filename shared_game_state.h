@@ -1,7 +1,8 @@
-
 #pragma once
 #include <stddef.h>
 #include <sys/time.h>
+#include <pthread.h>  
+
 #define MAX_PLAYERS 100  
 #define MAX_PLAYERS_PER_GAME 10  
 #define MAX_GAMES 10  
@@ -11,6 +12,8 @@
 #define MAX_SNAKE_LENGTH 100
 
 extern volatile int server_running;
+
+struct Server;
 
 typedef enum {
     EMPTY = 0,  
@@ -51,6 +54,7 @@ typedef struct {
     int height;               
     Cell cells[GRID_HEIGHT][GRID_WIDTH]; 
 } Grid;
+
 typedef struct {
     int x[MAX_SNAKE_LENGTH]; 
     int y[MAX_SNAKE_LENGTH];  
@@ -73,7 +77,11 @@ typedef struct {
     int num_players;            
     int max_players;  
     int is_active;              
+    pthread_t thread;          
+    int thread_active;        
+    struct Server* server;      // Reference to the server (using forward declaration)
 } Game;
+
 typedef struct {
     Grid grid;        
     Snake snake;      
@@ -81,10 +89,15 @@ typedef struct {
     int foodY;        
 } GameState;
 
-
-typedef struct {
+typedef struct Server {
     int server_socket;         
     Game games[MAX_GAMES];   
     int num_games;              
 } Server;
 
+typedef struct {
+    int socket;
+    int *game_chosen;
+    GameState *game_state;
+    int *gameover;
+} ThreadData;

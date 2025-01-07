@@ -95,5 +95,12 @@ CMakeFiles/server_snake.dir/server_snake.c.o: \
  /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
  /home/smiesko1/semestralka/server_snake.h \
  /home/smiesko1/semestralka/shared_game_state.h \
- /usr/include/x86_64-linux-gnu/sys/time.h \
+ /usr/include/x86_64-linux-gnu/sys/time.h /usr/include/pthread.h \
+ /usr/include/sched.h /usr/include/x86_64-linux-gnu/bits/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h \
+ /usr/include/x86_64-linux-gnu/bits/cpu-set.h \
+ /usr/include/x86_64-linux-gnu/bits/setjmp.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
+ /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
  /home/smiesko1/semestralka/snake.h

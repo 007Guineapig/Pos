@@ -9,11 +9,17 @@
 #include <time.h>
 #include <stdio.h>
 #include "server_snake.h"
+#include <pthread.h>
+
 #define GAME_STATE_SIZE 2428
+
+extern pthread_mutex_t server_mutex;
+
+void* game_loop(void* arg);
 
 void print_active_games(Server *server) {
     printf("Active Games:\n");
-    for (int i = 0; i < server->num_games; i++) {
+    for (int i = 0; i < MAX_GAMES; i++) {
         Game *game = &server->games[i];
         if (game->is_active) {
             printf("Game ID: %d, Players: %d/%d\n", game->game_id, game->num_players, game->max_players);
@@ -21,23 +27,25 @@ void print_active_games(Server *server) {
     }
 }
 
-
 void send_game_list(int client_socket, Server *server) {
     GameMessage msg;
     msg.type = MSG_GAME_LIST;
     msg.score = 0;
 
     for (int i = 0; i < MAX_GAMES; i++) {
-        msg.games[i].game_id = -1; 
+        msg.games[i].game_id = -1;
         msg.games[i].num_players = 0;
     }
 
-    for (int i = 0; i < server->num_games; i++) {
-        msg.games[i].game_id = server->games[i].game_id;
-        msg.games[i].num_players = server->games[i].num_players;
-        msg.games[i].max_players = server->games[i].max_players;
+    int active_games_count = 0;
+    for (int i = 0; i < MAX_GAMES; i++) {
+        if (server->games[i].is_active) {
+            msg.games[active_games_count].game_id = server->games[i].game_id;
+            msg.games[active_games_count].num_players = server->games[i].num_players;
+            msg.games[active_games_count].max_players = server->games[i].max_players;
+            active_games_count++;
+        }
     }
-    
 
     send(client_socket, &msg, sizeof(msg), 0);
 }
@@ -47,26 +55,25 @@ void check_food(Game *game) {
     int height = game->game_grid.height;
 
     int total = 0;
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                if (game->game_grid.cells[i][j] == FOOD) {
-                    game->game_grid.cells[i][j] = EMPTY;
-                    total = 1;
-                    if (total == 1) {
-                        break;
-                    }
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (game->game_grid.cells[i][j] == FOOD) {
+                game->game_grid.cells[i][j] = EMPTY;
+                total = 1;
+                if (total == 1) {
+                    break;
                 }
             }
-            if (total == 1) {
-                break;
-            }
         }
-    //}
+        if (total == 1) {
+            break;
+        }
+    }
 }
 
 void close_game(Server *server, int game_id) {
-    if (game_id < 0 || game_id >= server->num_games) {
-        return; 
+    if (game_id < 0 || game_id >= MAX_GAMES) {
+        return;
     }
 
     Game *game = &server->games[game_id];
@@ -80,10 +87,17 @@ void close_game(Server *server, int game_id) {
         close(game->players[i].socket);
     }
 
-    for (int i = game_id; i < server->num_games - 1; i++) {
-        server->games[i] = server->games[i + 1];
+    game->is_active = 0;
+    if (game->thread_active) {
+        pthread_join(game->thread, NULL);
+        game->thread_active = 0; 
+        printf("Game %d thread joined.\n", game_id);
     }
-    server->num_games--;
+
+    game->num_players = 0;
+    init_grid(&game->game_grid);
+    //tento minusovy kokot mi zabil 3 hodiny mojho života >:O
+    //server->num_games--;
 
     printf("Game %d has been closed.\n", game_id);
 }
@@ -107,7 +121,6 @@ int init_server(Server *server, const int port) {
         return -1;
     }
 
-    // Set server socket to non-blocking mode
     int flags = fcntl(server->server_socket, F_GETFL, 0);
     if (fcntl(server->server_socket, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("Error setting server socket to non-blocking mode");
@@ -132,28 +145,39 @@ int init_server(Server *server, const int port) {
 
     printf("Server is listening on port %d...\n", port);
     server->num_games = 0;
+
+    for (int i = 0; i < MAX_GAMES; i++) {
+        server->games[i].is_active = 0;
+    }
+
     return 0;
 }
 
 int create_new_game(Server *server, int max_players) {
-    if (server->num_games >= MAX_PLAYERS_PER_GAME) {
-        return -1;
+    for (int i = 0; i < MAX_GAMES; i++) {
+        if (!server->games[i].is_active) {
+            server->games[i].game_id = i;
+            init_grid(&server->games[i].game_grid);
+
+            server->games[i].num_players = 0;
+            server->games[i].max_players = max_players;
+            server->games[i].is_active = 1; 
+            server->games[i].thread_active = 1;  
+            server->games[i].server = server;
+
+            pthread_create(&server->games[i].thread, NULL, game_loop, &server->games[i]);
+
+            server->num_games++;
+
+            return i;
+        }
     }
 
-    int game_id = server->num_games;
-    server->games[game_id].game_id = game_id;
-    init_grid(&server->games[game_id].game_grid); 
-
-    server->games[game_id].num_players = 0;
-    server->games[game_id].max_players = max_players;
-    server->games[game_id].is_active = 1;
-    server->num_games++;
-
-    return game_id;
+    return -1;
 }
 
 int add_player_to_game(Server *server, int game_id, int player_socket) {
-    if (game_id < 0 || game_id >= server->num_games) {
+    if (game_id < 0 || game_id >= MAX_GAMES || !server->games[game_id].is_active) {
         return -1;
     }
 
@@ -170,10 +194,9 @@ int add_player_to_game(Server *server, int game_id, int player_socket) {
     int player_id = game->num_players;
     game->players[player_id].socket = player_socket;
     srand(time(NULL));
-        int start_x = 2 + rand() % (GRID_WIDTH - 4);
-        int start_y = 2 + rand() % (GRID_HEIGHT - 4); 
+    int start_x = 2 + rand() % (GRID_WIDTH - 4);
+    int start_y = 2 + rand() % (GRID_HEIGHT - 4); 
 
-    
     initializeSnake(&game->players[player_id].snake, start_x, start_y);
     game->players[player_id].playing = 1;
     game->players[player_id].sendData = 1;
@@ -226,7 +249,7 @@ void wait_for_clients(Server *server) {
                     }
                 } else if (buffer[0] >= '0' && buffer[0] <= '9') {
                     int game_id = buffer[0] - '0';
-                    if (game_id >= 0 && game_id < server->num_games) {
+                    if (game_id >= 0 && game_id < MAX_GAMES && server->games[game_id].is_active) {
                         add_player_to_game(server, game_id, client_socket);
                         printf("Player joined game %d\n", game_id);
                     }
@@ -235,37 +258,36 @@ void wait_for_clients(Server *server) {
         }
 
         if (FD_ISSET(STDIN_FILENO, &read_fds)) {
-    char input = getchar();
-    if (input == 'q') {
-        printf("Exit key pressed, shutting down server...\n");
-         server_running = 0; 
-        break;
-    } else if (input == 'c') {
-        printf("Type ID of server that you want to shut down (or 'q' to quit):\n");
-        print_active_games(server);
+            char input = getchar();
+            if (input == 'q') {
+                printf("Exit key pressed, shutting down server...\n");
+                server_running = 0; 
+                break;
+            } else if (input == 'c') {
+                printf("Type ID of server that you want to shut down (or 'q' to quit):\n");
+                print_active_games(server);
 
-        char game_id_input[10];
-        scanf("%s", game_id_input);
+                char game_id_input[10];
+                scanf("%s", game_id_input);
 
-        if (game_id_input[0] == 'q') {
-            printf("Quit command received. No games were closed.\n");
-        } else {
-            int game_id = atoi(game_id_input);
-            if (game_id >= 0 && game_id < server->num_games) {
-                close_game(server, game_id);
-            } else {
-                printf("Invalid game ID. No game closed.\n");
+                if (game_id_input[0] == 'q') {
+                    printf("Quit command received. No games were closed.\n");
+                } else {
+                    int game_id = atoi(game_id_input);
+                    if (game_id >= 0 && game_id < MAX_GAMES && server->games[game_id].is_active) {
+                        close_game(server, game_id);
+                    } else {
+                        printf("Invalid game ID. No game closed.\n");
+                    }
+                }
             }
         }
-    }
-}
 
         if (server->num_games == 0) {
             usleep(100000);
         }
     }
 }
-
 
 void handle_player_input(Server *server, int game_id, int player_id) {
     char buffer[1];
@@ -290,7 +312,6 @@ void handle_player_input(Server *server, int game_id, int player_id) {
                 case 'a': if (snake->direction != 'd') snake->direction = 'a'; break;
                 case 'd': if (snake->direction != 'a') snake->direction = 'd'; break;
                 case 'k':
-                    // Player leaves the game
                     printf("Player %d in game %d left the game.\n", player_id + 1, game_id);
 
                     GameMessage msg;
@@ -301,13 +322,12 @@ void handle_player_input(Server *server, int game_id, int player_id) {
 
                     close(server->games[game_id].players[player_id].socket);
                     check_food(&server->games[game_id]);
-                    // Remove the player from the game
+
                     for (int j = player_id; j < server->games[game_id].num_players - 1; j++) {
                         server->games[game_id].players[j] = server->games[game_id].players[j + 1];
                     }
                     server->games[game_id].num_players--;
 
-                    // Reset the game state if no players are left
                     if (server->games[game_id].num_players == 0) {
                         printf("No players left in game %d. Resetting game state.\n", game_id);
                         init_grid(&server->games[game_id].game_grid);
@@ -320,8 +340,6 @@ void handle_player_input(Server *server, int game_id, int player_id) {
         }
     }
 }
-
-
 
 void update_game_state(Server *server, int game_id) {
     Game *game = &server->games[game_id];
@@ -373,6 +391,7 @@ void update_game_state(Server *server, int game_id) {
 
     updateGrid(&game->game_grid, snakes, numSnakes);
 }
+
 void send_game_state_to_players(Server *server, int game_id) {
     Game *game = &server->games[game_id];
     for (int i = 0; i < game->num_players; i++) {
@@ -384,17 +403,53 @@ void send_game_state_to_players(Server *server, int game_id) {
 }
 
 void cleanup_server(Server *server) {
-    for (int i = 0; i < server->num_games; i++) {
+    for (int i = 0; i < MAX_GAMES; i++) {
+        if (!server->games[i].is_active) {
+            continue; 
+        }
+
         for (int j = 0; j < server->games[i].num_players; j++) {
-            GameMessage msg;
-            msg.type = MSG_SERVER_SHUTDOWN;
-            strncpy(msg.data, "Server is shutting down. Goodbye!", sizeof(msg.data));
-            send(server->games[i].players[j].socket, &msg, sizeof(msg), 0);
-            close(server->games[i].players[j].socket);
+            if (server->games[i].players[j].socket >= 0) {
+                GameMessage msg;
+                memset(&msg, 0, sizeof(msg));
+                msg.type = MSG_SERVER_SHUTDOWN;
+                strncpy(msg.data, "Server is shutting down. Goodbye!", sizeof(msg.data) - 1);
+                msg.data[sizeof(msg.data) - 1] = '\0';
+
+                if (send(server->games[i].players[j].socket, &msg, sizeof(msg), 0) < 0) {
+                    perror("Failed to send shutdown message");
+                }
+
+                if (close(server->games[i].players[j].socket) < 0) {
+                    perror("Failed to close socket");
+                }
+            }
+        }
+
+        server->games[i].is_active = 0;
+
+        if (server->games[i].thread_active) {
+            pthread_join(server->games[i].thread, NULL);
+            server->games[i].thread_active = 0;
+            printf("Game %d thread joined.\n", i);
         }
     }
 
+    if (server->server_socket >= 0) {
+        close(server->server_socket);
+        printf("Server socket closed and server shut down.\n");
+    }
+}
 
-    close(server->server_socket);
-    printf("Server socket closed and server shut down.\n");
+void* game_loop(void* arg) {
+    Game* game = (Game*)arg;
+    while (server_running && game->is_active) {
+        pthread_mutex_lock(&server_mutex);
+        update_game_state(game->server, game->game_id);
+        send_game_state_to_players(game->server, game->game_id);
+        pthread_mutex_unlock(&server_mutex);
+        usleep(750000);
+    }
+    printf("Game %d thread exiting.\n", game->game_id);
+    return NULL;
 }

@@ -13,7 +13,7 @@ void initializeSnake(Snake *snake, int startX, int startY) {
     snake->length = 1;  
     snake->x[0] = startX;
     snake->y[0] = startY;
-    snake->direction = 'w';
+    snake->direction = 'p';
     snake->score = 0;
 }
 
