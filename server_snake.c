@@ -266,7 +266,7 @@ void wait_for_clients(Server *server) {
                 }
             }
         }
-
+/*
         if (FD_ISSET(STDIN_FILENO, &read_fds)) {
             char input = getchar();
             if (input == 'q') {
@@ -292,7 +292,7 @@ void wait_for_clients(Server *server) {
                 }
             }
         }
-
+*/
         if (server->num_games == 0) {
             usleep(100000);
         }
@@ -320,6 +320,7 @@ void handle_player_input(Server *server, int game_id, int player_id) {
             char input = buffer[0];
 
             Snake *snake = &server->games[game_id].players[player_id].snake;
+            GameMessage msg;
             switch (input) {
                 case 'w': if (snake->direction != 's') snake->direction = 'w'; break;
                 case 's': if (snake->direction != 'w') snake->direction = 's'; break;
@@ -328,7 +329,7 @@ void handle_player_input(Server *server, int game_id, int player_id) {
                 case 'k':
                     //printf("Player %d in game %d left the game.\n", player_id + 1, game_id);
 
-                    GameMessage msg;
+                    
                     msg.type = MSG_GAME_OVER;
                     msg.score = snake->score;
                     strncpy(msg.data, "You left the game.", sizeof(msg.data));
@@ -385,7 +386,6 @@ void update_game_state(Server *server, int game_id) {
             check_food(game);
 
             close(game->players[i].socket);
-           // printf("Closed connection for player %d in game %d\n", i + 1, game_id);
 
             for (int j = i; j < game->num_players - 1; j++) {
                 game->players[j] = game->players[j + 1];
@@ -393,7 +393,6 @@ void update_game_state(Server *server, int game_id) {
             game->num_players--;
 
             if (game->num_players == 0) {
-               // printf("No players left in game %d. Resetting game state.\n", game_id);
                 init_grid(&game->game_grid);
             }
 

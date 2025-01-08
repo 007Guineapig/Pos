@@ -11,11 +11,13 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/wait.h>
+#include <signal.h>
+
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5097
 #define GAME_STATE_SIZE 2428
-
+int jo;
 int gameover;
 int score;
 int bestScore;
@@ -77,63 +79,53 @@ void cleanup_client(int *socket) {
     }
 }
 
+void sigchld_handler() {
+    while (waitpid(-1, NULL, WNOHANG) > 0);
+}
+
 int start_server() {
+    struct sigaction sa;
+    sa.sa_handler = sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        perror("Failed to set up SIGCHLD handler");
+        return -1;
+    }
+
     int socket = init_client(SERVER_IP, SERVER_PORT);
     if (socket == -1) {
-        // Fork a child process to start the server
         pid_t pid = fork();
         if (pid == 0) {
-
-
-
-
-                // First child process
-        pid_t pid2 = fork();
-        if (pid2 == 0) {
-            // Second child process: run the server
-            execl("./server_snake", "server_snake", NULL);
-            perror("Failed to start server");
-            exit(1);
-        } else if (pid2 > 0) {
-            // First child process: exit immediately
-            exit(0);
-        } else {
-            perror("Failed to fork second child process");
-            exit(1);
-        }
-
-
-
-
-/*
-            // Child process: execute the server
-            printf("Starting server process...\n");
-            execl("./server_snake", "server_snake", NULL);
-            // If execl() fails, print an error and exit
-            perror("Failed to start server");
-            exit(1);
-            */
+            pid_t pid2 = fork();
+            if (pid2 == 0) {
+                execl("./server_snake", "server_snake", NULL);
+                perror("Failed to start server");
+                jo = 0;
+            } else if (pid2 > 0) {
+                jo = 0;
+            } else {
+                perror("Failed to fork second child process");
+                jo = 0;
+            }
         } else if (pid > 0) {
-            // Parent process: wait for the server to start
             printf("Server process created with PID: %d\n", pid);
-            sleep(2);  // Wait for the server to initialize (adjust as needed)
+            sleep(2);
 
-            // Retry connecting to the server
-            int retries = 5;  // Number of retries
+            int retries = 5;
             while (retries--) {
                 socket = init_client(SERVER_IP, SERVER_PORT);
                 if (socket >= 0) {
                     printf("Connected to server successfully.\n");
-                    gameover = 0;  // Reset gameover flag
-                    return socket;  // Return the socket to the caller
+                    gameover = 0;
+                    return socket;
                 } else {
-                    printf("Failed to connect to server. Retrying...\n");
-                    cleanup_client(&socket);  // Clean up the socket
-                    sleep(2);  // Wait before retrying
+                    printf("Failed to connect to server. Retries left: %d\n", retries);
+                    cleanup_client(&socket);
+                    sleep(2);
                 }
             }
 
-            // If all retries fail
             fprintf(stderr, "Failed to connect to server after multiple retries.\n");
             return -1;
         } else {
@@ -141,11 +133,11 @@ int start_server() {
             return -1;
         }
     } else {
-        // If the initial connection succeeds
         printf("Connected to server successfully.\n");
-        gameover = 0;  // Reset gameover flag
-        return socket;  // Return the socket to the caller
+        gameover = 0;
+        return socket;
     }
+    return socket;
 }
 
 void display_game_list(GameMessage *msg) {
@@ -306,6 +298,7 @@ void printGrid(const Grid *grid) {
 }
 
 int main() {
+    jo = 1;
     int socket = -1;
     score = 0;
     GameState game_state;
@@ -333,6 +326,9 @@ int main() {
                 while (getchar() != '\n');
             } else if (menu_choice == 2) {
                 socket = start_server();
+                if(jo == 0){
+                    break;
+                }
                 if (socket >= 0) {
                     gameover = 0;
                     game_chosen = 0;

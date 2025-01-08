@@ -13,6 +13,7 @@ void cleanup_client(int *socket);
 void run_server(Server *server);
 int kbhit(void);
 void printGrid(const Grid *grid);
+void sigchld_handler();
 void display_game_list(GameMessage *msg);
 
 #endif 

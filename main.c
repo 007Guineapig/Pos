@@ -12,15 +12,13 @@
 #include "shared_game_state.h"
 #include <pthread.h>
 #include <stdatomic.h>
-// Tracks the last time a player was active
 time_t last_player_activity = 0;
 _Atomic int server_running = 1;
 
-// Declare server_running as atomic
 pthread_mutex_t server_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t game_state_updated = PTHREAD_COND_INITIALIZER;
 GameTimer game_timers[MAX_GAMES];
-//volatile int server_running = 1;
+
 
 void* server_shutdown_timer_thread(void* arg) {
     Server* server = (Server*)arg;
@@ -28,24 +26,22 @@ void* server_shutdown_timer_thread(void* arg) {
     while (atomic_load(&server_running)) {
         pthread_mutex_lock(&server_mutex);
 
-        // Check if any game has players
         int players_active = 0;
         for (int i = 0; i < MAX_GAMES; i++) {
             if (server->games[i].is_active && server->games[i].num_players > 0) {
                 players_active = 1;
-                last_player_activity = time(NULL);  // Update last activity time
+                last_player_activity = time(NULL);
                 break;
             }
         }
 
-        // If no players are active for 20 seconds and at least one player has joined before, shut down the server
-        if (!players_active && last_player_activity != 0 && (time(NULL) - last_player_activity) >= 5) {
-            printf("No players for 20 seconds. Shutting down server...\n");
-            atomic_store(&server_running, 0);  // Signal the server to shut down
+        if (!players_active && last_player_activity != 0 && (time(NULL) - last_player_activity) >= 10) {
+            //printf("No players for 20 seconds. Shutting down server...\n");
+            atomic_store(&server_running, 0);
         }
 
         pthread_mutex_unlock(&server_mutex);
-        sleep(1);  // Check every second
+        sleep(1);
     }
 
     return NULL;
@@ -143,14 +139,17 @@ int main(int argc, char *argv[]) {
 
     while (atomic_load(&server_running)) {
         wait_for_clients(&server);
+         
+        /*
         if (kbhit() && getchar() == 'q') {
             server_running = 0;
             break;
         }
+        */
 
         usleep(100000);
                 
-            printf("No ..\n");
+
 
     }
 

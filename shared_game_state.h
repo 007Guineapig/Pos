@@ -12,7 +12,6 @@
 #define GRID_HEIGHT 20
 #define MAX_SNAKE_LENGTH 100
 
-//extern volatile int server_runningg;
 extern _Atomic int server_running;
 
 
@@ -83,7 +82,7 @@ typedef struct {
     int is_active;              
     pthread_t thread;          
     int thread_active;        
-    struct Server* server;      // Reference to the server (using forward declaration)
+    struct Server* server;
 } Game;
 
 typedef struct {
