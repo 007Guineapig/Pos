@@ -15,5 +15,6 @@ int kbhit(void);
 void printGrid(const Grid *grid);
 void sigchld_handler();
 void display_game_list(GameMessage *msg);
+void receive_game_state_with_timeout(int socket, GameState *game_state,char represent_snake);
 
 #endif 

@@ -121,7 +121,7 @@ int init_server(Server *server, const int port) {
         return -1;
     }
 
-    // Set SO_REUSEADDR option
+
     int opt = 1;
     if (setsockopt(server->server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("Error setting SO_REUSEADDR");
@@ -263,6 +263,10 @@ void wait_for_clients(Server *server) {
                         add_player_to_game(server, game_id, client_socket);
                         //printf("Player joined game %d\n", game_id);
                     }
+                }else if (buffer[0] == 'q') {
+                    srand(time(NULL));
+                    last_player_activity = time(NULL); 
+                    close(client_socket);
                 }
             }
         }
@@ -410,6 +414,8 @@ void send_game_state_to_players(Server *server, int game_id) {
     for (int i = 0; i < game->num_players; i++) {
         GameMessage msg;
         msg.type = MSG_GAME_STATE;
+        
+        msg.snake =  game->players[i].snake;
         memcpy(msg.data, &game->game_grid, sizeof(game->game_grid));
         send(game->players[i].socket, &msg, sizeof(msg), 0);
     }

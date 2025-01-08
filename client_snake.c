@@ -13,13 +13,13 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5097
 #define GAME_STATE_SIZE 2428
 int jo;
 int gameover;
 int score;
+char represent_snake;
 int bestScore;
 
 int kbhit(void) {
@@ -191,6 +191,9 @@ void handle_user_input(int socket, int *game_chosen) {
                 *game_chosen = 1;
             } else if (input == 'q') {
                 *game_chosen = -1;
+                send(socket, &input, sizeof(input), 0);
+                close(socket);
+                
             }
         } else {
             if (input == 'w' || input == 'a' || input == 's' || input == 'd' || input == 'k' || input == 'p') {
@@ -200,7 +203,7 @@ void handle_user_input(int socket, int *game_chosen) {
     }
 }
 
-void receive_game_state_with_timeout(int socket, GameState *game_state) {
+void receive_game_state_with_timeout(int socket, GameState *game_state,char represent_snake) {
     fd_set read_fds;
     struct timeval timeout;
 
@@ -224,7 +227,8 @@ void receive_game_state_with_timeout(int socket, GameState *game_state) {
             switch (msg.type) {
                 case MSG_GAME_STATE:
                     memcpy(game_state, msg.data, sizeof(GameState));
-                    renderGrid(&game_state->grid);
+                    game_state->snake = msg.snake;
+                    renderGrid(&game_state->grid,&game_state->snake,represent_snake);
                     break;
 
                 case MSG_GAME_OVER:
@@ -277,27 +281,14 @@ void display_menu() {
     printf("1. View Score\n");
     printf("2. Reconnect to Server\n");
     printf("3. Keyboard Overlay\n");
-    printf("4. Exit\n");
+    printf("4. Choose snake representation\n");
+    printf("5. Exit\n");
+    printf("your skin : %c\n",represent_snake);
 }
 
-void printGrid(const Grid *grid) {
-    system("clear");
-    printf("Game Grid:\n");
-    for (int i = 0; i < grid->height; i++) {
-        for (int j = 0; j < grid->width; j++) {
-            if (grid->cells[i][j] == EMPTY) {
-                printf(". ");
-            } else if (grid->cells[i][j] == SNAKE) {
-                printf("S ");
-            } else if (grid->cells[i][j] == FOOD) {
-                printf("F ");
-            }
-        }
-        printf("\n");
-    }
-}
 
 int main() {
+    represent_snake= '1';
     jo = 1;
     int socket = -1;
     score = 0;
@@ -307,8 +298,8 @@ int main() {
     gameover = 0;
     int game_chosen = 0;
 
-    while (1) {
-        if (socket < 0) {
+        while (1) {
+            if (socket < 0) {
             display_menu();
             printf("Enter your choice: \n");
             if (scanf("%d", &menu_choice) != 1) {
@@ -317,12 +308,14 @@ int main() {
                 sleep(2);
                 continue;
             }
+                        while (getchar() != '\n'); // Clear the input buffer after successful scanf
+
 
             if (menu_choice == 1) {
+                system("clear");
                 printf("Your last gameplay score: %d\n", score);
                 printf("Your best score: %d\n", bestScore);
                 printf("Press Enter to return to menu.\n");
-                while (getchar() != '\n');
                 while (getchar() != '\n');
             } else if (menu_choice == 2) {
                 socket = start_server();
@@ -333,7 +326,7 @@ int main() {
                     gameover = 0;
                     game_chosen = 0;
                 }
-            } else if (menu_choice == 4) {
+            } else if (menu_choice == 5) {
                 cleanup_client(&socket);
                 break;
             } else if (menu_choice == 3) {
@@ -345,12 +338,37 @@ int main() {
                 printf("Press Enter to return to menu.\n");
                 while (getchar() != '\n');
                 while (getchar() != '\n');
+            } else if (menu_choice == 4) {
+                system("clear");
+                printf("Choose your game skin :)\n");
+                printf("Press key on keyboard\n");
+                int c;
+                while ((c = getchar()) != '\n' && c != EOF);
+                char input[100];
+                char represent;
+                while (1) {
+                    if (fgets(input, sizeof(input), stdin) != NULL) {
+                        if (input[0] != '\n' && input[0] != 'F' && input[1] == '\n' && isprint(input[0])) {
+                        represent = input[0];
+                        break; 
+                        } else {
+                            printf("Invalid input. Please choose a single printable character (not space or enter):\n");
+                        }
+                    }
+                }
+
+                system("clear");
+                printf("You chose '%c' as your game skin!\n", represent);
+                printf("Press Enter to return to menu.\n");
+                represent_snake = represent;
+                while (getchar() != '\n');
+
             } else {
                 printf("Invalid choice. Please try again.\n");
                 printf("Press Enter to return to menu.\n");
                 while (getchar() != '\n');
             }
-        } else {
+            } else {
             handle_user_input(socket, &game_chosen);
             if (game_chosen == -1) {
                 cleanup_client(&socket);
@@ -359,7 +377,7 @@ int main() {
                 continue;
             }
 
-            receive_game_state_with_timeout(socket, &game_state);
+            receive_game_state_with_timeout(socket, &game_state,represent_snake);
             if (gameover == 1) {
                 cleanup_client(&socket);
                 socket = -1;

@@ -14,10 +14,6 @@
 
 extern _Atomic int server_running;
 
-
-
-struct Server;
-
 typedef enum {
     EMPTY = 0,  
     SNAKE,      
@@ -46,8 +42,17 @@ typedef struct {
 } GameInfo;  
 
 typedef struct {
+    int x[MAX_SNAKE_LENGTH]; 
+    int y[MAX_SNAKE_LENGTH];  
+    int length;   
+    char direction;
+    int score;
+} Snake;
+
+typedef struct {
     MessageType type;
-    int score; 
+    int score;
+    Snake snake;
     char data[2428];  
     GameInfo games[MAX_GAMES];
 } GameMessage;
@@ -57,14 +62,6 @@ typedef struct {
     int height;               
     Cell cells[GRID_HEIGHT][GRID_WIDTH]; 
 } Grid;
-
-typedef struct {
-    int x[MAX_SNAKE_LENGTH]; 
-    int y[MAX_SNAKE_LENGTH];  
-    int length;   
-    char direction;
-    int score;
-} Snake;
 
 typedef struct {
     int socket; 

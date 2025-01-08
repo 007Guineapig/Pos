@@ -36,17 +36,27 @@ void spawnFood(Grid *grid) {
     grid->cells[food_y][food_x] = FOOD; 
 }
 
-void renderGrid(const Grid *grid) {
+void renderGrid(const Grid *grid, Snake *snake,char represent_snake) {
     system("clear");  
     printf("Game Grid:\n");
-    for(int i = 0; i < grid->height; i++) {
+    for (int i = 0; i < grid->height; i++) {
         for (int j = 0; j < grid->width; j++) {
-            if (grid->cells[i][j] == EMPTY) {
-                printf(". ");
-            } else if (grid->cells[i][j] == SNAKE) {
-                printf("S ");
+            int isSnakeCell = 0;
+            for (int k = 0; k < snake->length; k++) {
+                if (snake->x[k] == j && snake->y[k] == i) {
+                    isSnakeCell = 1;
+                    break; 
+                }
+            }
+
+            if (isSnakeCell) {
+                printf("%c ", represent_snake); 
             } else if (grid->cells[i][j] == FOOD) {
-                printf("F ");
+                printf("F "); 
+            } else if (grid->cells[i][j] == SNAKE) {
+                printf("S "); 
+            } else {
+                printf(". ");
             }
         }
         printf("\n");

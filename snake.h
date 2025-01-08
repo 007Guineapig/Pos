@@ -6,7 +6,7 @@
 
 void initializeSnake(Snake *snake, int startX, int startY);
 void spawnFood(Grid *grid);
-void renderGrid(const Grid *grid);
+void renderGrid(const Grid *grid,Snake * snake,char represent_snake);
 void moveSnake(Snake *snake, int deltaX, int deltaY);
 void updateGrid(Grid *grid, Snake * snakes, int num_players);
 int checkCollision(Grid *grid, Snake * snake);

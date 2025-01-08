@@ -34,9 +34,9 @@ void* server_shutdown_timer_thread(void* arg) {
                 break;
             }
         }
-
+        
         if (!players_active && last_player_activity != 0 && (time(NULL) - last_player_activity) >= 10) {
-            //printf("No players for 20 seconds. Shutting down server...\n");
+            //printf("No players for 10 seconds. Shutting down server...\n");
             atomic_store(&server_running, 0);
         }
 
