@@ -11,25 +11,58 @@
 #include <string.h>
 #include "shared_game_state.h"
 #include <pthread.h>
+#include <stdatomic.h>
+// Tracks the last time a player was active
+time_t last_player_activity = 0;
+_Atomic int server_running = 1;
 
+// Declare server_running as atomic
 pthread_mutex_t server_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t game_state_updated = PTHREAD_COND_INITIALIZER;
 GameTimer game_timers[MAX_GAMES];
-volatile int server_running = 1;
+//volatile int server_running = 1;
+
+void* server_shutdown_timer_thread(void* arg) {
+    Server* server = (Server*)arg;
+
+    while (atomic_load(&server_running)) {
+        pthread_mutex_lock(&server_mutex);
+
+        // Check if any game has players
+        int players_active = 0;
+        for (int i = 0; i < MAX_GAMES; i++) {
+            if (server->games[i].is_active && server->games[i].num_players > 0) {
+                players_active = 1;
+                last_player_activity = time(NULL);  // Update last activity time
+                break;
+            }
+        }
+
+        // If no players are active for 20 seconds and at least one player has joined before, shut down the server
+        if (!players_active && last_player_activity != 0 && (time(NULL) - last_player_activity) >= 5) {
+            printf("No players for 20 seconds. Shutting down server...\n");
+            atomic_store(&server_running, 0);  // Signal the server to shut down
+        }
+
+        pthread_mutex_unlock(&server_mutex);
+        sleep(1);  // Check every second
+    }
+
+    return NULL;
+}
+
 void* handle_game_timer_thread(void* arg) {
     Server* server = (Server*)arg;
-    while (server_running) {
+    while (atomic_load(&server_running)) {
         pthread_mutex_lock(&server_mutex);
         for (int i = 0; i < server->num_games; i++) {
             if (server->games[i].is_active && server->games[i].num_players == 0) {
                 if (!game_timers[i].timer_started) {
                     game_timers[i].timer_started = 1;
                     game_timers[i].last_player_left_time = time(NULL);
-                    printf("Game %d timer started (no players).\n", i);
                 } else {
                     time_t current_time = time(NULL);
                     if (current_time - game_timers[i].last_player_left_time >= 10) {
-                        printf("Game %d timer expired. Closing game.\n", i);
                         close_game(server, i);
                         game_timers[i].timer_started = 0;
                     }
@@ -69,13 +102,12 @@ int kbhit(void) {
 
 void* handle_player_input_thread(void* arg) {
     Server* server = (Server*)arg;
-    while (server_running) {
+    while (atomic_load(&server_running)) {
         pthread_mutex_lock(&server_mutex);
         for (int i = 0; i < server->num_games; i++) {
             if (server->games[i].is_active) {
                 for (int j = 0; j < server->games[i].num_players; j++) {
                     handle_player_input(server, i, j);
-                     
                 }
             }
         }
@@ -86,6 +118,8 @@ void* handle_player_input_thread(void* arg) {
 }
 
 int main(int argc, char *argv[]) {
+    atomic_store(&server_running, 1);
+
     Server server;
     int port = 5097;
     srand(time(NULL));
@@ -95,39 +129,42 @@ int main(int argc, char *argv[]) {
     }
 
     if (init_server(&server, port) < 0) {
-        printf("Failed to initialize server\n");
         return -1;
     }
 
     pthread_mutex_init(&server_mutex, NULL);
     pthread_cond_init(&game_state_updated, NULL);
 
-    pthread_t input_thread, timer_thread;
+    pthread_t input_thread, timer_thread,server_shutdown_timer_thread_id;
     pthread_create(&input_thread, NULL, handle_player_input_thread, &server);
     pthread_create(&timer_thread, NULL, handle_game_timer_thread, &server);
+    pthread_create(&server_shutdown_timer_thread_id,NULL, server_shutdown_timer_thread, &server);
 
-    while (server_running) {
+
+    while (atomic_load(&server_running)) {
         wait_for_clients(&server);
         if (kbhit() && getchar() == 'q') {
-            printf("Exit key pressed, shutting down server...\n");
             server_running = 0;
             break;
         }
 
         usleep(100000);
+                
+            printf("No ..\n");
+
     }
 
 
     for (int i = 0; i < server.num_games; i++) {
         if (server.games[i].is_active) {
             pthread_join(server.games[i].thread, NULL);
-            printf("Game %d thread joined.\n", i);
         }
     }
 
 
     pthread_join(input_thread, NULL);
     pthread_join(timer_thread, NULL);
+    pthread_join(server_shutdown_timer_thread_id, NULL);
 
     pthread_mutex_destroy(&server_mutex);
     pthread_cond_destroy(&game_state_updated);

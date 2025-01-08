@@ -3,6 +3,8 @@
 #define SERVER_SNAKE_H
 #include "server_snake.h"
 #include "snake.h"  
+extern time_t last_player_activity;
+
 
 int init_server(Server *server, const int port);
 void wait_for_clients(Server *server);

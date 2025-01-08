@@ -87,7 +87,7 @@ void updateGrid(Grid *grid, Snake *snakes, int num_snakes) {
 
 
 
-int checkCollision(Grid *grid, Snake * snake,int deltaX,int deltaY) {
+int checkCollision(Grid *grid, Snake * snake) {
 
     if(snake->x[0] < 0 || snake->x[0] >= grid->width || snake->y[0] < 0 || snake->y[0] >= grid->height) {
 

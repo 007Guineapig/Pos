@@ -10,17 +10,15 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <ctype.h>
-#include <pthread.h> 
+#include <sys/wait.h>
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5097
-
 #define GAME_STATE_SIZE 2428
 
 int gameover;
 int score;
 int bestScore;
-
 
 int kbhit(void) {
     struct termios oldt, newt;
@@ -72,6 +70,84 @@ int init_client(const char *server_ip, const int port) {
     return socket_fd;
 }
 
+void cleanup_client(int *socket) {
+    if (*socket >= 0) {
+        close(*socket);
+        *socket = -1;
+    }
+}
+
+int start_server() {
+    int socket = init_client(SERVER_IP, SERVER_PORT);
+    if (socket == -1) {
+        // Fork a child process to start the server
+        pid_t pid = fork();
+        if (pid == 0) {
+
+
+
+
+                // First child process
+        pid_t pid2 = fork();
+        if (pid2 == 0) {
+            // Second child process: run the server
+            execl("./server_snake", "server_snake", NULL);
+            perror("Failed to start server");
+            exit(1);
+        } else if (pid2 > 0) {
+            // First child process: exit immediately
+            exit(0);
+        } else {
+            perror("Failed to fork second child process");
+            exit(1);
+        }
+
+
+
+
+/*
+            // Child process: execute the server
+            printf("Starting server process...\n");
+            execl("./server_snake", "server_snake", NULL);
+            // If execl() fails, print an error and exit
+            perror("Failed to start server");
+            exit(1);
+            */
+        } else if (pid > 0) {
+            // Parent process: wait for the server to start
+            printf("Server process created with PID: %d\n", pid);
+            sleep(2);  // Wait for the server to initialize (adjust as needed)
+
+            // Retry connecting to the server
+            int retries = 5;  // Number of retries
+            while (retries--) {
+                socket = init_client(SERVER_IP, SERVER_PORT);
+                if (socket >= 0) {
+                    printf("Connected to server successfully.\n");
+                    gameover = 0;  // Reset gameover flag
+                    return socket;  // Return the socket to the caller
+                } else {
+                    printf("Failed to connect to server. Retrying...\n");
+                    cleanup_client(&socket);  // Clean up the socket
+                    sleep(2);  // Wait before retrying
+                }
+            }
+
+            // If all retries fail
+            fprintf(stderr, "Failed to connect to server after multiple retries.\n");
+            return -1;
+        } else {
+            perror("Failed to fork server process");
+            return -1;
+        }
+    } else {
+        // If the initial connection succeeds
+        printf("Connected to server successfully.\n");
+        gameover = 0;  // Reset gameover flag
+        return socket;  // Return the socket to the caller
+    }
+}
+
 void display_game_list(GameMessage *msg) {
     system("clear");
     printf("Available Games:\n");
@@ -90,55 +166,47 @@ void display_game_list(GameMessage *msg) {
     printf("Press 'q' to quit and return to the main menu.\n");
 }
 
-void* handle_user_input_thread(void* arg) {
-    ThreadData* data = (ThreadData*)arg;
-    while (!*(data->gameover)) {
-        if (kbhit()) {
-            char input = getchar();
+void handle_user_input(int socket, int *game_chosen) {
+    if (kbhit()) {
+        char input = getchar();
 
-            if (!(*(data->game_chosen))) {
-                if (input == 'c') {
-                    system("clear");
-                    printf("Enter the maximum number of players for the new game: \n");
-                    printf("Choose between <1,%d>\n", MAX_PLAYERS_PER_GAME);
-                    char max_players_input[10];
-                    int max_players = 0;
-                    while (1) {
-                        fgets(max_players_input, sizeof(max_players_input), stdin);
-                        max_players = atoi(max_players_input);
+        if (!(*game_chosen)) {
+            if (input == 'c') {
+                system("clear");
+                printf("Enter the maximum number of players for the new game: \n");
+                printf("Choose between <1,%d>\n", MAX_PLAYERS_PER_GAME);
+                char max_players_input[10];
+                int max_players = 0;
+                while (1) {
+                    fgets(max_players_input, sizeof(max_players_input), stdin);
+                    max_players = atoi(max_players_input);
 
-                        if (max_players > 0 && max_players <= MAX_PLAYERS_PER_GAME) {
-                            break;
-                        } else {
-                            printf("Invalid input: %d\n", max_players);
-                            printf("Choose between <1,%d>\n", MAX_PLAYERS_PER_GAME);
-                        }
+                    if (max_players > 0 && max_players <= MAX_PLAYERS_PER_GAME) {
+                        break;
+                    } else {
+                        printf("Invalid input: %d\n", max_players);
+                        printf("Choose between <1,%d>\n", MAX_PLAYERS_PER_GAME);
                     }
-
-                    char command[10];
-                    snprintf(command, sizeof(command), "c%d", max_players);
-                    send(data->socket, command, strlen(command), 0);
-
-                    *(data->game_chosen) = 1;
-                } else if (input >= '0' && input <= '9') {
-                    send(data->socket, &input, sizeof(input), 0);
-                    *(data->game_chosen) = 1;
-                } else if (input == 'q') {
-                    *(data->game_chosen) = -1;
-                    *(data->gameover) = 1; 
-                    printf("\n");
                 }
-            } else {
-                if (input == 'w' || input == 'a' || input == 's' || input == 'd' || input == 'k' || input == 'p') {
-                    send(data->socket, &input, sizeof(input), 0);
-                }
+
+                char command[10];
+                snprintf(command, sizeof(command), "c%d", max_players);
+                send(socket, command, strlen(command), 0);
+
+                *game_chosen = 1;
+            } else if (input >= '0' && input <= '9') {
+                send(socket, &input, sizeof(input), 0);
+                *game_chosen = 1;
+            } else if (input == 'q') {
+                *game_chosen = -1;
+            }
+        } else {
+            if (input == 'w' || input == 'a' || input == 's' || input == 'd' || input == 'k' || input == 'p') {
+                send(socket, &input, sizeof(input), 0);
             }
         }
-        usleep(100000); 
     }
-    return NULL;
 }
-
 
 void receive_game_state_with_timeout(int socket, GameState *game_state) {
     fd_set read_fds;
@@ -211,8 +279,7 @@ void receive_game_state_with_timeout(int socket, GameState *game_state) {
     }
 }
 
-
-void display_menu(int score) {
+void display_menu() {
     system("clear");
     printf("Menu:\n");
     printf("1. View Score\n");
@@ -238,13 +305,6 @@ void printGrid(const Grid *grid) {
     }
 }
 
-void cleanup_client(int *socket) {
-    if (*socket >= 0) {
-        close(*socket);
-    }
-    *socket = -1;
-}
-
 int main() {
     int socket = -1;
     score = 0;
@@ -254,12 +314,9 @@ int main() {
     gameover = 0;
     int game_chosen = 0;
 
-    pthread_t input_thread;
-    ThreadData thread_data;
-
     while (1) {
         if (socket < 0) {
-            display_menu(score);
+            display_menu();
             printf("Enter your choice: \n");
             if (scanf("%d", &menu_choice) != 1) {
                 while (getchar() != '\n');
@@ -272,31 +329,13 @@ int main() {
                 printf("Your last gameplay score: %d\n", score);
                 printf("Your best score: %d\n", bestScore);
                 printf("Press Enter to return to menu.\n");
-                int cd;
-                while ((cd = getchar()) != '\n' && cd != EOF);
-                while (1) {
-                    if (getchar() == '\n') {
-                        break;
-                    }
-                }
+                while (getchar() != '\n');
+                while (getchar() != '\n');
             } else if (menu_choice == 2) {
-                gameover = 0;
-                socket = init_client(SERVER_IP, SERVER_PORT);
-                if (socket < 0) {
-                    printf("Failed to connect to server. Retrying...\n");
-                    cleanup_client(&socket);
-                    sleep(2);
-                } else {
-                    thread_data.socket = socket;
-                    thread_data.game_chosen = &game_chosen;
-                    thread_data.game_state = &game_state;
-                    thread_data.gameover = &gameover;
-
-                    if (pthread_create(&input_thread, NULL, handle_user_input_thread, &thread_data) != 0) {
-                        perror("Failed to create input thread");
-                        cleanup_client(&socket);
-                        continue;
-                    }
+                socket = start_server();
+                if (socket >= 0) {
+                    gameover = 0;
+                    game_chosen = 0;
                 }
             } else if (menu_choice == 4) {
                 cleanup_client(&socket);
@@ -308,42 +347,35 @@ int main() {
                 printf("C - create a new game\n");
                 printf("Q - quit and return to the main menu\n");
                 printf("Press Enter to return to menu.\n");
-                int cd;
-                while ((cd = getchar()) != '\n' && cd != EOF);
-                while (1) {
-                    if (getchar() == '\n') {
-                        break;
-                    }
-                }
+                while (getchar() != '\n');
+                while (getchar() != '\n');
             } else {
                 printf("Invalid choice. Please try again.\n");
                 printf("Press Enter to return to menu.\n");
-                while (1) {
-                    if (getchar() == '\n') {
-                        break;
-                    }
-                }
+                while (getchar() != '\n');
             }
         } else {
+            handle_user_input(socket, &game_chosen);
+            if (game_chosen == -1) {
+                cleanup_client(&socket);
+                socket = -1;
+                game_chosen = 0;
+                continue;
+            }
+
             receive_game_state_with_timeout(socket, &game_state);
             if (gameover == 1) {
                 cleanup_client(&socket);
                 socket = -1;
                 game_chosen = 0;
-
-                pthread_join(input_thread, NULL);
             }
 
             if (socket < 0) {
                 printf("Press Enter to return to menu.\n");
-                while (1) {
-                    if (getchar() == '\n') {
-                        break;
-                    }
-                }
+                while (getchar() != '\n');
             }
 
-            usleep(100000);
+            usleep(10000);
         }
     }
 

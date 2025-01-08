@@ -51,6 +51,7 @@ CMakeFiles/server_snake.dir/main.c.o: /home/smiesko1/semestralka/main.c \
   /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
   /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
   /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
+  /usr/lib/gcc/x86_64-linux-gnu/12/include/stdatomic.h \
   /home/smiesko1/semestralka/snake.h \
   /home/smiesko1/semestralka/client_snake.h \
   /usr/include/stdlib.h \
@@ -242,6 +243,7 @@ CMakeFiles/server_snake.dir/server_snake.c.o: /home/smiesko1/semestralka/server_
   /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
   /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
   /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
+  /usr/lib/gcc/x86_64-linux-gnu/12/include/stdatomic.h \
   /home/smiesko1/semestralka/snake.h
 
 CMakeFiles/server_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
@@ -294,6 +296,7 @@ CMakeFiles/server_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
   /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
   /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
   /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
+  /usr/lib/gcc/x86_64-linux-gnu/12/include/stdatomic.h \
   /home/smiesko1/semestralka/server_snake.h \
   /usr/include/stdlib.h \
   /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
@@ -421,6 +424,8 @@ CMakeFiles/server_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
 
 /usr/include/x86_64-linux-gnu/bits/stdint-intn.h:
 
+/usr/include/x86_64-linux-gnu/sys/types.h:
+
 /usr/include/sched.h:
 
 /usr/include/pthread.h:
@@ -444,8 +449,6 @@ CMakeFiles/server_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
 /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h:
 
 /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h:
-
-/usr/include/x86_64-linux-gnu/sys/types.h:
 
 /usr/include/x86_64-linux-gnu/sys/socket.h:
 
@@ -568,6 +571,8 @@ CMakeFiles/server_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
 /usr/include/x86_64-linux-gnu/bits/types.h:
 
 /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/12/include/stdatomic.h:
 
 /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h:
 

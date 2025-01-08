@@ -43,6 +43,7 @@ CMakeFiles/client_snake.dir/snake.c.o: /home/smiesko1/semestralka/snake.c \
  /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
  /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
  /usr/include/x86_64-linux-gnu/bits/pthread_stack_min.h \
+ /usr/lib/gcc/x86_64-linux-gnu/12/include/stdatomic.h \
  /home/smiesko1/semestralka/server_snake.h /usr/include/stdlib.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/x86_64-linux-gnu/bits/waitflags.h \

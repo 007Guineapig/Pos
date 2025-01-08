@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <sys/time.h>
 #include <pthread.h>  
+#include <stdatomic.h>
 
 #define MAX_PLAYERS 100  
 #define MAX_PLAYERS_PER_GAME 10  
@@ -11,7 +12,10 @@
 #define GRID_HEIGHT 20
 #define MAX_SNAKE_LENGTH 100
 
-extern volatile int server_running;
+//extern volatile int server_runningg;
+extern _Atomic int server_running;
+
+
 
 struct Server;
 

@@ -9,7 +9,7 @@ void spawnFood(Grid *grid);
 void renderGrid(const Grid *grid);
 void moveSnake(Snake *snake, int deltaX, int deltaY);
 void updateGrid(Grid *grid, Snake * snakes, int num_players);
-int checkCollision(Grid *grid, Snake * snake,int deltaX,int deltaY);
+int checkCollision(Grid *grid, Snake * snake);
 void send_player_input(int socket, char input);
 
 #endif 
