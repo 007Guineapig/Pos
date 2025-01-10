@@ -242,6 +242,7 @@ void receive_game_state_with_timeout(int socket, GameState *game_state,char repr
                     if (score > bestScore) {
                         bestScore = score;
                     }
+                    
                     gameover = 1;
                     break;
 
@@ -318,7 +319,9 @@ int main() {
                 printf("Your last gameplay score: %d\n", score);
                 printf("Your best score: %d\n", bestScore);
                 printf("Press Enter to return to menu.\n");
+
                 while (getchar() != '\n');
+
             } else if (menu_choice == 2) {
                 socket = start_server();
 
@@ -333,6 +336,7 @@ int main() {
             } else if (menu_choice == 5) {
                 cleanup_client(&socket);
                 break;
+
             } else if (menu_choice == 3) {
                 printf("W, A, S, D - move forward, left, backward and right\n");
                 printf("P - pause/stop snake movement\n");
@@ -342,6 +346,7 @@ int main() {
                 printf("Press Enter to return to menu.\n");
                 while (getchar() != '\n');
                 while (getchar() != '\n');
+
             } else if (menu_choice == 4) {
                 system("clear");
                 printf("Choose your game skin :)\n");
