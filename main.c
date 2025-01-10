@@ -12,9 +12,9 @@
 #include "shared_game_state.h"
 #include <pthread.h>
 #include <stdatomic.h>
+
 time_t last_player_activity = 0;
 _Atomic int server_running = 1;
-
 pthread_mutex_t server_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t game_state_updated = PTHREAD_COND_INITIALIZER;
 GameTimer game_timers[MAX_GAMES];
@@ -167,8 +167,7 @@ int main(int argc, char *argv[]) {
 
     pthread_mutex_destroy(&server_mutex);
     pthread_cond_destroy(&game_state_updated);
-
-
+    
     cleanup_server(&server);
 
     return 0;

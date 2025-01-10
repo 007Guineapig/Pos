@@ -105,6 +105,7 @@ void close_game(Server *server, int game_id) {
 void init_grid(Grid *grid) {
     grid->width = GRID_WIDTH;
     grid->height = GRID_HEIGHT;
+
     for (int i = 0; i < grid->height; i++) {
         for (int j = 0; j < grid->width; j++) {
             grid->cells[i][j] = EMPTY;
@@ -333,7 +334,6 @@ void handle_player_input(Server *server, int game_id, int player_id) {
                 case 'k':
                     //printf("Player %d in game %d left the game.\n", player_id + 1, game_id);
 
-                    
                     msg.type = MSG_GAME_OVER;
                     msg.score = snake->score;
                     strncpy(msg.data, "You left the game.", sizeof(msg.data));
@@ -381,7 +381,6 @@ void update_game_state(Server *server, int game_id) {
         moveSnake(snake, deltaX, deltaY);
         if (checkCollision(&game->game_grid, snake)) {
             //printf("Player %d in game %d hit an obstacle. Game over!\n", i + 1, game_id);
-
             GameMessage msg;
             msg.type = MSG_GAME_OVER;
             msg.score = snake->score;
@@ -414,7 +413,6 @@ void send_game_state_to_players(Server *server, int game_id) {
     for (int i = 0; i < game->num_players; i++) {
         GameMessage msg;
         msg.type = MSG_GAME_STATE;
-        
         msg.snake =  game->players[i].snake;
         memcpy(msg.data, &game->game_grid, sizeof(game->game_grid));
         send(game->players[i].socket, &msg, sizeof(msg), 0);

@@ -26,7 +26,6 @@ int kbhit(void) {
     struct termios oldt, newt;
     int ch;
     int oldf;
-
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag &= ~(ICANON | ECHO);
@@ -88,12 +87,14 @@ int start_server() {
     sa.sa_handler = sigchld_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
         perror("Failed to set up SIGCHLD handler");
         return -1;
     }
 
     int socket = init_client(SERVER_IP, SERVER_PORT);
+
     if (socket == -1) {
         pid_t pid = fork();
         if (pid == 0) {
@@ -111,8 +112,8 @@ int start_server() {
         } else if (pid > 0) {
             printf("Server process created with PID: %d\n", pid);
             sleep(2);
-
             int retries = 5;
+
             while (retries--) {
                 socket = init_client(SERVER_IP, SERVER_PORT);
                 if (socket >= 0) {
@@ -144,12 +145,14 @@ void display_game_list(GameMessage *msg) {
     system("clear");
     printf("Available Games:\n");
     int numeroGames = 0;
+
     for (int i = 0; i < MAX_GAMES; i++) {
         if (msg->games[i].game_id != -1) {
             printf("Game %d: %d/%d players\n", msg->games[i].game_id, msg->games[i].num_players, msg->games[i].max_players);
             numeroGames++;
         }
     }
+
     if (numeroGames == 0) {
         printf("None available existing games\n");
     }
@@ -184,7 +187,6 @@ void handle_user_input(int socket, int *game_chosen) {
                 char command[10];
                 snprintf(command, sizeof(command), "c%d", max_players);
                 send(socket, command, strlen(command), 0);
-
                 *game_chosen = 1;
             } else if (input >= '0' && input <= '9') {
                 send(socket, &input, sizeof(input), 0);
@@ -236,6 +238,7 @@ void receive_game_state_with_timeout(int socket, GameState *game_state,char repr
                     system("clear");
                     printf("Game Over: %s\n", msg.data);
                     score = msg.score;
+
                     if (score > bestScore) {
                         bestScore = score;
                     }
@@ -308,8 +311,7 @@ int main() {
                 sleep(2);
                 continue;
             }
-                        while (getchar() != '\n'); // Clear the input buffer after successful scanf
-
+            while (getchar() != '\n');
 
             if (menu_choice == 1) {
                 system("clear");
@@ -319,9 +321,11 @@ int main() {
                 while (getchar() != '\n');
             } else if (menu_choice == 2) {
                 socket = start_server();
+
                 if(jo == 0){
                     break;
                 }
+
                 if (socket >= 0) {
                     gameover = 0;
                     game_chosen = 0;
@@ -342,8 +346,7 @@ int main() {
                 system("clear");
                 printf("Choose your game skin :)\n");
                 printf("Press key on keyboard\n");
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
+
                 char input[100];
                 char represent;
                 while (1) {
@@ -370,14 +373,15 @@ int main() {
             }
             } else {
             handle_user_input(socket, &game_chosen);
+
             if (game_chosen == -1) {
                 cleanup_client(&socket);
                 socket = -1;
                 game_chosen = 0;
                 continue;
             }
-
             receive_game_state_with_timeout(socket, &game_state,represent_snake);
+            
             if (gameover == 1) {
                 cleanup_client(&socket);
                 socket = -1;
