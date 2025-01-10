@@ -14,18 +14,21 @@
 
 extern _Atomic int server_running;
 
+//represent tile in grid
 typedef enum {
     EMPTY = 0,  
     SNAKE,      
     FOOD        
 } Cell;
 
+//timer for each game
 typedef struct {
     int game_id;
     time_t last_player_left_time;
     int timer_started;
 } GameTimer;
 
+//type of message that is sent from server to clients
 typedef enum {
     MSG_GAME_STATE,
     MSG_GAME_OVER,
@@ -35,12 +38,14 @@ typedef enum {
     MSG_GAME_LIST  
 } MessageType;
 
+//basic info of the game
 typedef struct {
     int game_id;
     int num_players;
     int max_players;
 } GameInfo;  
 
+//snakes informations
 typedef struct {
     int x[MAX_SNAKE_LENGTH]; 
     int y[MAX_SNAKE_LENGTH];  
@@ -49,6 +54,7 @@ typedef struct {
     int score;
 } Snake;
 
+//message that is sent from server to clients
 typedef struct {
     MessageType type;
     int score;
@@ -57,12 +63,14 @@ typedef struct {
     GameInfo games[MAX_GAMES];
 } GameMessage;
 
+//grid infos
 typedef struct {
     int width;                
     int height;               
     Cell cells[GRID_HEIGHT][GRID_WIDTH]; 
 } Grid;
 
+//players infos
 typedef struct {
     int socket; 
     Snake snake;
@@ -70,6 +78,7 @@ typedef struct {
     int sendData;
 } Player;
 
+//infos of the game
 typedef struct {
     int game_id;               
     Grid game_grid;            
@@ -82,19 +91,23 @@ typedef struct {
     struct Server* server;
 } Game;
 
+//state of the game
 typedef struct {
     Grid grid;        
-    Snake snake;      
+    Snake snake;    
+    //forgot to delete  
     int foodX;        
     int foodY;        
 } GameState;
 
+//server info
 typedef struct Server {
     int server_socket;         
     Game games[MAX_GAMES];   
     int num_games;              
 } Server;
 
+//not needed forgot to delete
 typedef struct {
     int socket;
     int *game_chosen;

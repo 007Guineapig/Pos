@@ -19,7 +19,8 @@ pthread_mutex_t server_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t game_state_updated = PTHREAD_COND_INITIALIZER;
 GameTimer game_timers[MAX_GAMES];
 
-
+//method that another thread works with, checks if none players are on the server
+//after 10 seconds of non player there, server shuts down
 void* server_shutdown_timer_thread(void* arg) {
     Server* server = (Server*)arg;
 
@@ -47,6 +48,7 @@ void* server_shutdown_timer_thread(void* arg) {
     return NULL;
 }
 
+//checks if players are in current game, if not game shuts down
 void* handle_game_timer_thread(void* arg) {
     Server* server = (Server*)arg;
     while (atomic_load(&server_running)) {
@@ -72,6 +74,8 @@ void* handle_game_timer_thread(void* arg) {
     }
     return NULL;
 }
+
+//serves on automatically take user imput from the cli
 int kbhit(void) {
     struct termios oldt, newt;
     int ch;
@@ -96,6 +100,7 @@ int kbhit(void) {
     return 0;
 }
 
+//separate thread checks for players imputs
 void* handle_player_input_thread(void* arg) {
     Server* server = (Server*)arg;
     while (atomic_load(&server_running)) {
@@ -113,6 +118,7 @@ void* handle_player_input_thread(void* arg) {
     return NULL;
 }
 
+//there runs the whole server
 int main(int argc, char *argv[]) {
     atomic_store(&server_running, 1);
 

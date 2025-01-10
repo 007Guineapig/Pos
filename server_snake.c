@@ -12,11 +12,15 @@
 #include <pthread.h>
 
 #define GAME_STATE_SIZE 2428
-
 extern pthread_mutex_t server_mutex;
 
+//forward declaration on game_loop, so function knows about it that it is present
 void* game_loop(void* arg);
 
+//prints player, this functions was initialy made for server thats run on different
+//console, when it worked like that u were able to see current games, deleting/shutting down games
+//also shutting the server
+//few of those methodes also in main are commented out
 void print_active_games(Server *server) {
     printf("Active Games:\n");
     for (int i = 0; i < MAX_GAMES; i++) {
@@ -27,6 +31,7 @@ void print_active_games(Server *server) {
     }
 }
 
+//sends game list to the player that joined the server
 void send_game_list(int client_socket, Server *server) {
     GameMessage msg;
     msg.type = MSG_GAME_LIST;
@@ -50,6 +55,7 @@ void send_game_list(int client_socket, Server *server) {
     send(client_socket, &msg, sizeof(msg), 0);
 }
 
+//when player left also one of the food despawn
 void check_food(Game *game) {
     int width = game->game_grid.width;
     int height = game->game_grid.height;
@@ -71,6 +77,8 @@ void check_food(Game *game) {
     }
 }
 
+
+//game with game_id shuts down
 void close_game(Server *server, int game_id) {
     if (game_id < 0 || game_id >= MAX_GAMES) {
         return;
@@ -102,6 +110,7 @@ void close_game(Server *server, int game_id) {
     //printf("Game %d has been closed.\n", game_id);
 }
 
+//initialize the grid of the game
 void init_grid(Grid *grid) {
     grid->width = GRID_WIDTH;
     grid->height = GRID_HEIGHT;
@@ -113,6 +122,7 @@ void init_grid(Grid *grid) {
     }
 }
 
+//initialization of the server its self
 int init_server(Server *server, const int port) {
     struct sockaddr_in server_addr;
     server->server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -163,6 +173,7 @@ int init_server(Server *server, const int port) {
     return 0;
 }
 
+//creates new game on the server
 int create_new_game(Server *server, int max_players) {
     for (int i = 0; i < MAX_GAMES; i++) {
         if (!server->games[i].is_active) {
@@ -186,6 +197,7 @@ int create_new_game(Server *server, int max_players) {
     return -1;
 }
 
+//adds player to the game he chose/created
 int add_player_to_game(Server *server, int game_id, int player_socket) {
     if (game_id < 0 || game_id >= MAX_GAMES || !server->games[game_id].is_active) {
         return -1;
@@ -216,6 +228,7 @@ int add_player_to_game(Server *server, int game_id, int player_socket) {
     return player_id;
 }
 
+//in this method server is waiting for player to start comunnication after that server accepts them
 void wait_for_clients(Server *server) {
     while (1) {
         fd_set read_fds;
@@ -308,6 +321,7 @@ void wait_for_clients(Server *server) {
     }
 }
 
+//serves to handle players inputs
 void handle_player_input(Server *server, int game_id, int player_id) {
     char buffer[1];
     struct timeval timeout;
@@ -360,6 +374,7 @@ void handle_player_input(Server *server, int game_id, int player_id) {
     }
 }
 
+//games grid are updating here
 void update_game_state(Server *server, int game_id) {
     Game *game = &server->games[game_id];
     Snake snakes[MAX_PLAYERS_PER_GAME];
@@ -408,6 +423,7 @@ void update_game_state(Server *server, int game_id) {
     updateGrid(&game->game_grid, snakes, numSnakes);
 }
 
+//sending informations to the players on each game
 void send_game_state_to_players(Server *server, int game_id) {
     Game *game = &server->games[game_id];
     for (int i = 0; i < game->num_players; i++) {
@@ -419,6 +435,7 @@ void send_game_state_to_players(Server *server, int game_id) {
     }
 }
 
+//serves to clean up clients and server its self
 void cleanup_server(Server *server) {
     for (int i = 0; i < MAX_GAMES; i++) {
         if (!server->games[i].is_active) {
@@ -458,6 +475,7 @@ void cleanup_server(Server *server) {
     }
 }
 
+//function that each of the gam thread use to run the game
 void* game_loop(void* arg) {
     Game* game = (Game*)arg;
     while (atomic_load(&server_running) && game->is_active) {
