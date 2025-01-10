@@ -5,10 +5,12 @@
 #include <time.h>
 #include <sys/socket.h> 
 
+//forgot to delete
 void send_player_input(int socket, char input) {
     send(socket, &input, sizeof(input), 0);
 }
 
+//Initilization of player snake 
 void initializeSnake(Snake *snake, int startX, int startY) {
     snake->length = 1;  
     snake->x[0] = startX;
@@ -17,6 +19,7 @@ void initializeSnake(Snake *snake, int startX, int startY) {
     snake->score = 0;
 }
 
+//spawns food on the grid
 void spawnFood(Grid *grid) {
     srand(time(NULL));
     if(grid->width <= 0 || grid->height <= 0) {
@@ -36,6 +39,7 @@ void spawnFood(Grid *grid) {
     grid->cells[food_y][food_x] = FOOD; 
 }
 
+//prints grid
 void renderGrid(const Grid *grid, Snake *snake,char represent_snake) {
     system("clear");  
     printf("Game Grid:\n");
@@ -63,6 +67,7 @@ void renderGrid(const Grid *grid, Snake *snake,char represent_snake) {
     }
 }
 
+//make a move for snake head, and all of its body parts move up + 1 bodypart
 void moveSnake(Snake *snake, int deltaX, int deltaY) {
     if(deltaX ==0 && deltaY ==0){
     } else{
@@ -76,7 +81,7 @@ void moveSnake(Snake *snake, int deltaX, int deltaY) {
     }
     
 }
-
+//updates the grid
 void updateGrid(Grid *grid, Snake *snakes, int num_snakes) {
     for(int i = 0; i < grid->height; i++) {
         for(int j = 0; j < grid->width; j++) {
@@ -96,7 +101,7 @@ void updateGrid(Grid *grid, Snake *snakes, int num_snakes) {
 
 
 
-
+//checks if the snake collided
 int checkCollision(Grid *grid, Snake * snake) {
 
     if(snake->x[0] < 0 || snake->x[0] >= grid->width || snake->y[0] < 0 || snake->y[0] >= grid->height) {

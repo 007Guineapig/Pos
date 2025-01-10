@@ -22,6 +22,7 @@ int score;
 char represent_snake;
 int bestScore;
 
+//serves on automatically take user imput from the cli
 int kbhit(void) {
     struct termios oldt, newt;
     int ch;
@@ -43,6 +44,7 @@ int kbhit(void) {
     return 0;
 }
 
+//creates clients socket
 int init_client(const char *server_ip, const int port) {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -71,6 +73,7 @@ int init_client(const char *server_ip, const int port) {
     return socket_fd;
 }
 
+//clean clients socket
 void cleanup_client(int *socket) {
     if (*socket >= 0) {
         close(*socket);
@@ -78,6 +81,7 @@ void cleanup_client(int *socket) {
     }
 }
 
+//prevents 'Zombie clients' to appear 
 void sigchld_handler() {
     while (waitpid(-1, NULL, WNOHANG) > 0);
 }
@@ -141,6 +145,7 @@ int start_server() {
     return socket;
 }
 
+//display player current games on the server + choices 
 void display_game_list(GameMessage *msg) {
     system("clear");
     printf("Available Games:\n");
@@ -161,6 +166,7 @@ void display_game_list(GameMessage *msg) {
     printf("Press 'q' to quit and return to the main menu.\n");
 }
 
+//checking all of the players imput from the menus to the game its self
 void handle_user_input(int socket, int *game_chosen) {
     if (kbhit()) {
         char input = getchar();
@@ -205,6 +211,7 @@ void handle_user_input(int socket, int *game_chosen) {
     }
 }
 
+//process the data that server sends him
 void receive_game_state_with_timeout(int socket, GameState *game_state,char represent_snake) {
     fd_set read_fds;
     struct timeval timeout;
@@ -279,6 +286,7 @@ void receive_game_state_with_timeout(int socket, GameState *game_state,char repr
     }
 }
 
+//shows menu to the player
 void display_menu() {
     system("clear");
     printf("Menu:\n");
@@ -290,7 +298,7 @@ void display_menu() {
     printf("your skin : %c\n",represent_snake);
 }
 
-
+//main place where all of it runs
 int main() {
     represent_snake= '1';
     jo = 1;
